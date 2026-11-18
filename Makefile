@@ -18,7 +18,18 @@
 # (.github/workflows/deploy.yml). Este Makefile cuida só da infraestrutura.
 # ============================================================
 
+# No Windows, o `bash` do PATH costuma ser o do WSL (System32\bash.exe), que nao
+# entende caminhos do Windows. Usa o Git Bash, que vem com o Git. O caminho
+# usa o nome curto 8.3 (PROGRA~1): o make quebra caminhos com espaco em dois.
+ifeq ($(OS),Windows_NT)
+GIT_BASH := $(firstword $(wildcard C:/PROGRA~1/Git/bin/bash.exe C:/PROGRA~2/Git/bin/bash.exe))
+ifeq ($(GIT_BASH),)
+$(error Git Bash nao encontrado. Instale o Git para Windows ou rode o make pelo Git Bash.)
+endif
+SHELL := $(GIT_BASH)
+else
 SHELL := bash
+endif
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 .ONESHELL:

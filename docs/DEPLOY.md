@@ -4,7 +4,7 @@ Tudo em `us-east-1`, na mesma conta e na mesma zona do Route 53 do admin-hub (`r
 
 ## Atalho: `make`
 
-O `Makefile` da raiz faz os passos 1 e 2 com as travas de segurança. Rode no Git Bash ou WSL:
+O `Makefile` da raiz faz os passos 1 e 2 com as travas de segurança. Funciona no PowerShell, no Git Bash e no WSL (no Windows ele usa o Git Bash por baixo):
 
 ```bash
 make help                      # lista os alvos
