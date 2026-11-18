@@ -1,0 +1,27 @@
+/* Peças que só o app tem (o protótipo não precisava): raiz, entrada, carregamento, foco do composer. */
+html, body, #root { min-height: 100%; }
+body { background: var(--desk); }
+#root { display: flex; flex-direction: column; min-height: 100vh; }
+#root > .app { flex: 1; }
+
+.auth { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: linear-gradient(150deg, #1b5063 0%, #256b80 55%, #2f7f92 100%); }
+.auth-card { width: 100%; max-width: 420px; background: var(--card); border-radius: 22px; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .45); }
+.auth-card img { height: 32px; align-self: flex-start; }
+.auth-card form { display: flex; flex-direction: column; gap: 14px; }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+.loading { display: flex; align-items: center; gap: 10px; color: var(--ink2); padding: 24px 4px; }
+.err-box { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+
+.chat-msgs .day { align-self: center; font: 700 11px/1 var(--f-title); letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); background: var(--card); padding: 5px 10px; border-radius: 99px; border: 1px solid var(--line); }
+.chat-empty { margin: auto; text-align: center; color: var(--ink2); padding: 24px; }
+.kv-list { display: flex; flex-direction: column; gap: 6px; }
+.resumo-lines { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font: 500 13.5px/1.5 var(--f-text); }
+.goal-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.goal-form .hrow { grid-column: 1 / -1; }
+.skip { position: absolute; left: -9999px; top: 8px; z-index: 100; background: var(--card); padding: 8px 12px; border-radius: 10px; }
+.skip:focus { left: 8px; }
+button.sb-i { width: 100%; text-align: left; }
+.mtop .av-btn { display: inline-flex; }

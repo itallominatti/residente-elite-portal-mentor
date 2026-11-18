@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+
+# Terraform
+iac/**/.terraform/
+iac/**/*.tfstate
+iac/**/*.tfstate.*
+iac/**/*.tfplan
+iac/**/terraform.tfvars
+iac/**/backend.hcl
+
+# Configuração local do app de desktop
+.claude/

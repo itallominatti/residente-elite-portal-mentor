@@ -1,0 +1,42 @@
+/* ============================================================
+   Tokens do portal do mentor.
+   Vêm do produto (elite-med-learner: src/index.css) e do protótipo do
+   redesenho do learner, para as duas famílias parecerem a mesma marca.
+   Acréscimos deste portal:
+   - violeta = "isto veio do Elitinho" (sempre, e só isso);
+   - tons de situação do mentorando (alerta, atenção, em dia, novo);
+   - --viewas = a cor do modo "ver como mentor" do admin (âmbar escuro).
+   Contraste: texto secundário a 70% da tinta; cada tom tem uma versão -t
+   (texto) escura o bastante para 4,5:1 sobre o fundo claro do próprio tom.
+   ============================================================ */
+:root {
+  --teal: #256b80; --teal-d: #1b5063; --teal-s: rgba(37, 107, 128, .12);
+  --amber: #f0a83a; --amber-t: #8a5a0f; --amber-s: rgba(240, 168, 58, .18);
+  --ink: #0e3643; --ink2: rgba(14, 54, 67, .76); --ink3: rgba(14, 54, 67, .66);
+  --desk: #e9eff1; --soft: #f0f5f6; --card: #fff; --dark: #0e3643;
+  --line: rgba(14, 54, 67, .11); --track: rgba(14, 54, 67, .10);
+  --ok: #2e9e63; --ok-t: #1c6b43; --ok-s: rgba(46, 158, 99, .13);
+  --bad: #e04f4f; --bad-t: #b3312f; --bad-s: rgba(224, 79, 79, .11);
+  --blue: #3b82c4; --blue-t: #2a65a0; --blue-s: rgba(59, 130, 196, .14);
+  --violet: #8b5cf6; --violet-t: #6d3fd6; --violet-s: rgba(139, 92, 246, .13);
+  --viewas: #7a4b08; --viewas-bg: #fdecc8; --viewas-line: #e9b650;
+
+  --f-title: "Space Grotesk", system-ui, sans-serif;
+  --f-text: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  --r-s: 10px; --r-m: 14px; --r-l: 20px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --shadow-pop: 0 14px 30px -10px rgba(14, 54, 67, .5);
+}
+
+/* Tons: --fg é a cor do texto/ícone, --bg o fundo claro do tom. */
+.tone-teal { --fg: var(--teal); --bg: var(--teal-s); }
+.tone-amber { --fg: var(--amber-t); --bg: var(--amber-s); }
+.tone-ok { --fg: var(--ok-t); --bg: var(--ok-s); }
+.tone-bad { --fg: var(--bad-t); --bg: var(--bad-s); }
+.tone-blue { --fg: var(--blue-t); --bg: var(--blue-s); }
+.tone-violet { --fg: var(--violet-t); --bg: var(--violet-s); }
+.tone-neutral { --fg: var(--ink); --bg: var(--soft); }
+.tone-muted { --fg: var(--ink2); --bg: var(--soft); }
+.tone-dark { --fg: #fff; --bg: var(--dark); }
+.tone-white { --fg: var(--ink); --bg: var(--card); }

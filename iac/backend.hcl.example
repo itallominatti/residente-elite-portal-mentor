@@ -1,0 +1,7 @@
+# Copie para backend.hcl (fora do git) e rode: terraform init -backend-config=backend.hcl
+# O bucket é criado uma vez pelo módulo bootstrap/.
+bucket       = "residente-elite-terraform-state"
+key          = "portal-mentor/terraform.tfstate"
+region       = "us-east-1"
+encrypt      = true
+use_lockfile = true

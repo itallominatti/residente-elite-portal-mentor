@@ -1,0 +1,56 @@
+name: CI
+
+# Roda em todo PR e em push fora da main. O deploy (deploy.yml) chama este
+# mesmo workflow antes de publicar, então a main nunca sobe sem passar aqui.
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Lint, tipos, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  terraform:
+    name: Terraform fmt e validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.0
+
+      - name: fmt
+        run: terraform -chdir=iac fmt -recursive -check -diff
+
+      - name: validate (sem backend nem credenciais)
+        run: |
+          terraform -chdir=iac init -backend=false -input=false
+          terraform -chdir=iac validate
+          terraform -chdir=iac/bootstrap init -backend=false -input=false
+          terraform -chdir=iac/bootstrap validate

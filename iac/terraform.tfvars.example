@@ -1,0 +1,6 @@
+# Copie para terraform.tfvars (fora do git) se quiser mudar algum padrão.
+# domain_name                 = "mentor.residente-elite.com"
+# bucket_name                 = "residente-elite-portal-mentor"
+# github_repository           = "itallominatti/residente-elite-portal-mentor"
+# Ligue só se a conta ainda não tiver o provedor OIDC do GitHub:
+# create_github_oidc_provider = true
