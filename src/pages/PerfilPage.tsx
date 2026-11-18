@@ -115,7 +115,7 @@ function MetricasPendentes() {
   return (
     <Card title="Desempenho, temas prioritários e revisões" icon={Lock} iconTone="muted">
       <Callout icon={Info} tone="amber">
-        <p className="t-small">Estas métricas existem, mas hoje o servidor só entrega as de outro aluno para administradores: para o mentor, ele devolve os dados do próprio mentor, sem erro. Elas aparecem aqui assim que o back-end passar a aceitar quem atende o aluno (ajuste descrito na documentação do portal).</p>
+        <p className="t-small">Estas métricas aparecem aqui quando a versão do servidor que libera a leitura da revisão do aluno para quem o atende estiver publicada. Até lá, o servidor só as entrega a administradores.</p>
       </Callout>
     </Card>
   );

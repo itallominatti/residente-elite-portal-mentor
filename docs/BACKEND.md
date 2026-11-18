@@ -23,30 +23,30 @@ Levantamento feito lendo o código em 18/11/2026 (nenhum arquivo do back-end foi
 
 **1. CORS.** Incluir `https://mentor.residente-elite.com` em `CORS_ALLOWED_ORIGINS` do serviço Django em produção (variável de ambiente lida em `internal/infrastructure/config/settings.py`). Conferir também se a borda da API (`deploy/terraform/api-edge`) repassa o cabeçalho `Origin` para essa origem. Sem isso, o navegador bloqueia toda chamada do portal. É configuração, não código.
 
-## P1: para o mentor ver todas as métricas do mentorando
+## P1: para o mentor ver todas as métricas do mentorando (feito, falta publicar)
 
-**2. `usuario_alvo` devolve os dados do próprio mentor, em silêncio.** Em `internal/domain/revision/services.py`, `usuario_alvo` só honra `?user_id=` para admin; para qualquer outro papel devolve o id de quem chamou, sem erro. Um mentor que pede a evolução de um aluno recebe **a própria** evolução (vazia), com status 200. Afeta `evolution`, `priority-themes`, `schedules` e `themes`.
+Feito no `elite-med-back-end`, branch `feat/mentor-le-revisao-do-aluno` (sem push).
 
-Proposta: mesma regra que `calendar-items` já usa.
+**2. Leitura da revisão do aluno pelo mentor.** Antes, `usuario_alvo` (`internal/domain/revision/services.py`) só honrava `?user_id=` para admin: o mentor que pedia a evolução de um aluno recebia **a própria**, com 200 e sem erro. Agora:
 
-```python
-def usuario_alvo(*, papel, superusuario, proprio_id, pedido, pode_acompanhar):
-    if not pedido or pedido == str(proprio_id):
-        return proprio_id
-    if superusuario or papel == 'admin':
-        return pedido
-    if papel in ('mentor', 'submentor') and pode_acompanhar(proprio_id, pedido):
-        return pedido
-    raise Forbidden('Você não atende este aluno.')   # 403, nunca o dado de outra pessoa
-```
+| Quem pede `?user_id=` de outro aluno | Resposta |
+|---|---|
+| admin ou superusuário | os dados do aluno (como antes) |
+| mentor ou submentor que **atende** o aluno | os dados do aluno |
+| mentor ou submentor que **não atende** (ou id malformado) | 403 `{"error": "Você não atende este aluno."}` |
+| aluno | os próprios dados, ignorando o pedido (como antes, de propósito: um 403 diria que o id existe) |
 
-E `HasRevisionAccess` exige que o **mentor** tenha o produto de revisão para ler a revisão do **aluno**. Para a leitura com `?user_id=`, a checagem certa é a do aluno, não a do mentor (ou uma permissão `PodeLerRevisaoDoAluno`). Testes: mentor lê aluno da carteira (200), aluno fora (403), aluno lendo outro aluno (403 em vez do próprio dado).
+"Atende" é a mesma pergunta de `calendar-items` e da meta semanal (`get_pode_acompanhar_aluno`). Vale para `revision/evolution`, `revision/priority-themes`, `revision/schedules`, `themes/?user=` e `isolated-simulados/evolution` e `categories`.
 
-Depois disso, ligar `VITE_FEATURE_METRICAS_DO_MENTOR=true` no environment do GitHub: o portal já tem a tela.
+A permissão nova `LeRevisaoDeQuemAcompanha` deixa o mentor **ler** a revisão do aluno sem ter o produto de revisão (a revisão é do aluno). Só em GET: em escrita, e na própria revisão sem `?user_id=`, a checagem de produto continua.
 
-**3. Simulados, caderno de erros, flashcards e foco do aluno.** Hoje são só do próprio aluno ou de admin (`exams/views/admin.py` exige `IsAdmin`; `isolated_simulado` resolve `user_id` só para admin/staff). Estender com a mesma regra do item 2, ou criar leituras de mentor. O portal ainda não mostra esses blocos.
+Testes: domínio (`tests/revision/domain/test_evolucao.py`) e integração (`tests/revision/integration/test_isolamento_entre_alunos.py`): mentor lê (até sem produto), submentor lê pelo mentor pai, outro ramo leva 403 sem nada do aluno, id malformado leva a mesma recusa, aluno continua ignorado, POST não pula a checagem de produto.
 
-**4. (desempenho, opcional) Carteira com indicadores.** O portal monta a carteira juntando 3 listas (alunos, radar e conversas). Serve bem para centenas de alunos. Para mostrar na lista o acerto de 14 dias, a meta da semana e as revisões atrasadas de cada aluno (como no protótipo), o caminho é um `GET /mentoring/carteira/` que devolva esses números em lote, reaproveitando `radar_query.py`, que já calcula tudo por escopo com número fixo de consultas.
+**Para ligar no portal:** depois do deploy do back-end, `VITE_FEATURE_METRICAS_DO_MENTOR=true` no environment `production` do GitHub e um novo deploy. O portal já tem a tela (desempenho na revisão e temas críticos).
+
+**3. Ainda não feito: simulados (prova), caderno de erros, flashcards e foco.** Não têm leitura por aluno nem para admin fora das telas próprias do hub (`exams/views/admin.py` exige `IsAdmin`). Pedem endpoints de leitura novos com a mesma regra; o portal ainda não mostra esses blocos.
+
+**4. (desempenho, opcional, não feito) Carteira com indicadores.** O portal monta a carteira juntando 3 listas (alunos, radar e conversas). Serve bem para centenas de alunos. Para mostrar na lista o acerto de 14 dias, a meta da semana e as revisões atrasadas de cada aluno (como no protótipo), o caminho é um `GET /mentoring/carteira/` que devolva esses números em lote, reaproveitando `radar_query.py`, que já calcula tudo por escopo com número fixo de consultas.
 
 ## P2: funções novas do protótipo
 
@@ -60,4 +60,4 @@ Depois disso, ligar `VITE_FEATURE_METRICAS_DO_MENTOR=true` no environment do Git
 
 ## Achado de passagem
 
-O retorno silencioso de `usuario_alvo` (item 2) vale também fora do portal: qualquer tela que um dia abra o Acompanhamento do hub para mentor mostraria dados errados sem erro nenhum.
+O retorno silencioso de `usuario_alvo` (item 2) valia também fora do portal: qualquer tela que abrisse o Acompanhamento do hub para mentor mostraria dados errados sem erro nenhum. O ajuste do P1 resolve isso para todos os clientes.

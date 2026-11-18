@@ -5,10 +5,12 @@
  *
  * - `calendar-items` e `students/<id>/resets` checam "quem atende o aluno"
  *   (`pode_acompanhar_aluno`): o mentor lê os da carteira; fora dela, 403.
- * - `evolution`, `priority-themes` e `schedules` usam `aluno_alvo`, que só
- *   honra `?user_id=` para admin. Para o mentor, devolvem os dados DELE MESMO,
- *   em silêncio. Por isso só são chamados por admin ou com
- *   `VITE_FEATURE_METRICAS_DO_MENTOR` ligada (depois do ajuste no servidor).
+ * - `evolution`, `priority-themes` e `schedules` usam `aluno_alvo`. Até a
+ *   branch `feat/mentor-le-revisao-do-aluno` do back-end, só honravam
+ *   `?user_id=` para admin e devolviam ao mentor os dados DELE MESMO, em
+ *   silêncio; com ela, o mentor lê quem atende e leva 403 fora do ramo. Por
+ *   isso só são chamados por admin ou com `VITE_FEATURE_METRICAS_DO_MENTOR`
+ *   ligada (depois desse back-end publicado).
  */
 import { qs, request } from '@/lib/http';
 
