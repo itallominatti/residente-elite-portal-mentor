@@ -11,6 +11,9 @@ name: Deploy
 #   CLOUDFRONT_DISTRIBUTION_ID  saída cloudfront_distribution_id
 #   VITE_API_BASE_URL           https://api.residente-elite.com/api/v1
 #   VITE_FEATURE_METRICAS_DO_MENTOR  false (true depois do ajuste no back-end)
+#   VITE_FEATURE_ACOMPANHAMENTO      false (true depois do deploy do back-end com as migrações 0151 e 0152)
+#   VITE_FEATURE_ELITINHO_DO_MENTOR  false (NÃO ligar sem a decisão de LGPD; ver docs/BACKEND.md, item 7)
+#   VITE_ELITINHO_API_URL            (vazio enquanto o Elitinho do mentor estiver desligado)
 on:
   push:
     branches: [main]
@@ -71,6 +74,9 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           VITE_FEATURE_METRICAS_DO_MENTOR: ${{ vars.VITE_FEATURE_METRICAS_DO_MENTOR || 'false' }}
+          VITE_FEATURE_ACOMPANHAMENTO: ${{ vars.VITE_FEATURE_ACOMPANHAMENTO || 'false' }}
+          VITE_FEATURE_ELITINHO_DO_MENTOR: ${{ vars.VITE_FEATURE_ELITINHO_DO_MENTOR || 'false' }}
+          VITE_ELITINHO_API_URL: ${{ vars.VITE_ELITINHO_API_URL }}
 
       - name: Credenciais AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4

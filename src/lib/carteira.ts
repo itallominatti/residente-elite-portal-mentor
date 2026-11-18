@@ -10,6 +10,7 @@
  */
 import type { AlunoDaCarteira, AlunoNoRadar, Motivo } from '@/lib/api/mentoring';
 import type { Conversa } from '@/lib/api/chat';
+import type { AlunoComIndicadores, Indicadores } from '@/lib/api/acompanhamento';
 
 export type Situacao = 'alerta' | 'atencao' | 'novo' | 'ok';
 export const ORDEM_DA_SITUACAO: Record<Situacao, number> = { alerta: 0, atencao: 1, novo: 2, ok: 3 };
@@ -22,6 +23,8 @@ export interface Mentorando {
   conversaId: string | null; podeEscrever: boolean;
   esperandoDesde: string | null; naoLidas: number;
   ultimaMensagemDoRamo: string | null; ultimaMensagemEm: string | null; previa: string;
+  /** Acerto, meta e revisões, do servidor (`/mentoring/carteira/`). `null` enquanto a função está desligada. */
+  indicadores: Indicadores | null;
 }
 
 export function situacaoDe(motivos: Motivo[], temConversa: boolean): Situacao {
@@ -35,7 +38,8 @@ export interface Escopo {
   mentorId: string | null;
 }
 
-export function montarCarteira(alunos: AlunoDaCarteira[], radar: AlunoNoRadar[], conversas: Conversa[], escopo: Escopo): Mentorando[] {
+export function montarCarteira(alunos: AlunoDaCarteira[], radar: AlunoNoRadar[], conversas: Conversa[], escopo: Escopo, indicadores: AlunoComIndicadores[] = []): Mentorando[] {
+  const indicadoresDe = new Map(indicadores.map(i => [i.id, i.indicadores]));
   const doEscopo = escopo.mentorId ? alunos.filter(a => a.mentorships.some(v => v.mentor_id === escopo.mentorId)) : alunos;
   const porAluno = new Map(radar.map(r => [r.id, r]));
   const conversasDoEscopo = escopo.mentorId ? conversas.filter(c => c.mentor_id === escopo.mentorId) : conversas;
@@ -60,6 +64,7 @@ export function montarCarteira(alunos: AlunoDaCarteira[], radar: AlunoNoRadar[],
       ultimaMensagemDoRamo: r?.ultima_mensagem_do_ramo_em ?? null,
       ultimaMensagemEm: c?.last_message_at ?? null,
       previa: c?.last_message_preview ?? '',
+      indicadores: indicadoresDe.get(a.id) ?? null,
     };
   });
 }
@@ -72,6 +77,26 @@ export function ordenarPorUrgencia(ms: Mentorando[]): Mentorando[] {
     || (a.esperandoDesde ? 0 : 1) - (b.esperandoDesde ? 0 : 1)
     || (a.esperandoDesde ?? '').localeCompare(b.esperandoDesde ?? '')
     || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+export type OrdemPorIndicador = 'acerto' | 'meta' | 'revisoes';
+
+/** Quem mais precisa primeiro em cada coluna; quem não tem o número (sem respostas, sem meta) vai para o fim. */
+export function ordenarPorIndicador(ms: Mentorando[], por: OrdemPorIndicador): Mentorando[] {
+  const valor = (m: Mentorando): number | null => {
+    const i = m.indicadores;
+    if (!i) return null;
+    if (por === 'acerto') return i.acerto_recente;
+    if (por === 'meta') return i.pct_da_meta;
+    return i.revisoes_atrasadas ? -i.revisoes_atrasadas : 0;
+  };
+  return [...ms].sort((a, b) => {
+    const x = valor(a), y = valor(b);
+    if (x === null && y === null) return a.nome.localeCompare(b.nome, 'pt-BR');
+    if (x === null) return 1;
+    if (y === null) return -1;
+    return x - y || a.nome.localeCompare(b.nome, 'pt-BR');
+  });
 }
 
 export function contar(ms: Mentorando[]) {

@@ -11,18 +11,24 @@ import { useEscopo } from '@/contexts/EscopoContext';
 import { abrirConversa } from '@/lib/api/chat';
 import { haQuanto } from '@/lib/format';
 import type { Mentorando } from '@/lib/carteira';
+import { FEATURES } from '@/config';
 
 const Geral = lazy(() => import('@/pages/perfil/Geral'));
 const Desempenho = lazy(() => import('@/pages/perfil/Desempenho'));
 const Estudo = lazy(() => import('@/pages/perfil/Estudo'));
 const Plano = lazy(() => import('@/pages/perfil/Plano'));
+const Contatos = lazy(() => import('@/pages/perfil/Contatos'));
 
 const ABAS = [
   { chave: 'geral', rotulo: 'Visão geral', sufixo: '' },
   { chave: 'desempenho', rotulo: 'Desempenho', sufixo: '/desempenho' },
   { chave: 'estudo', rotulo: 'Estudo', sufixo: '/estudo' },
   { chave: 'plano', rotulo: 'Plano e metas', sufixo: '/plano' },
+  { chave: 'contatos', rotulo: 'Contatos e notas', sufixo: '/contatos' },
 ] as const;
+
+/** A aba de contatos depende do servidor novo: com a função desligada, ela some (e o endereço volta à visão geral). */
+const abasVisiveis = () => ABAS.filter(a => a.chave !== 'contatos' || FEATURES.acompanhamento);
 
 export default function PerfilPage() {
   const { id = '', aba } = useParams();
@@ -35,7 +41,7 @@ export default function PerfilPage() {
   if (pronto && !m) return <SemPermissao />;
   if (!m) return null;
   // Endereço de aba que não existe volta à visão geral, sem tela de erro.
-  if (aba && !ABAS.some(a => a.chave === aba && a.chave !== 'geral')) return <Navigate to={`/mentorandos/${id}`} replace />;
+  if (aba && !abasVisiveis().some(a => a.chave === aba && a.chave !== 'geral')) return <Navigate to={`/mentorandos/${id}`} replace />;
   return <Perfil m={m} aba={(aba ?? 'geral') as (typeof ABAS)[number]['chave']} />;
 }
 
@@ -48,7 +54,8 @@ function Perfil({ m, aba }: { m: Mentorando; aba: (typeof ABAS)[number]['chave']
     onSuccess: c => { qc.invalidateQueries({ queryKey: ['conversas'] }); nav(`/conversas/${c.id}`); },
   });
   const conversar = () => (m.conversaId ? nav(`/conversas/${m.conversaId}`) : abrir.mutate());
-  const atual = ABAS.findIndex(a => a.chave === aba);
+  const abas = abasVisiveis();
+  const atual = abas.findIndex(a => a.chave === aba);
 
   return (
     <Shell title={m.nome} back="/mentorandos" sub={<SituacaoPill s={m.situacao} />}>
@@ -64,12 +71,13 @@ function Perfil({ m, aba }: { m: Mentorando; aba: (typeof ABAS)[number]['chave']
         </div>
       </div>
       {abrir.error && <ErrorBox error={abrir.error} />}
-      <Tabs on={atual} items={ABAS.map(a => ({ label: a.rotulo, to: `/mentorandos/${m.id}${a.sufixo}` }))} />
+      <Tabs on={atual} items={abas.map(a => ({ label: a.rotulo, to: `/mentorandos/${m.id}${a.sufixo}` }))} />
       <Suspense fallback={<Loading />}>
         {aba === 'geral' && <Geral m={m} />}
         {aba === 'desempenho' && <Desempenho alunoId={m.id} />}
         {aba === 'estudo' && <Estudo alunoId={m.id} />}
         {aba === 'plano' && <Plano alunoId={m.id} />}
+        {aba === 'contatos' && <Contatos m={m} />}
       </Suspense>
     </Shell>
   );

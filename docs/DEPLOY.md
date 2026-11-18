@@ -66,6 +66,9 @@ terraform output
 | `CLOUDFRONT_DISTRIBUTION_ID` | saída `cloudfront_distribution_id` |
 | `VITE_API_BASE_URL` | `https://api.residente-elite.com/api/v1` |
 | `VITE_FEATURE_METRICAS_DO_MENTOR` | `false` (vira `true` depois do ajuste P1 no back-end) |
+| `VITE_FEATURE_ACOMPANHAMENTO` | `false` (vira `true` depois do deploy do back-end com as migrações 0151 e 0152) |
+| `VITE_FEATURE_ELITINHO_DO_MENTOR` | `false`. Só liga com a decisão de LGPD (docs/BACKEND.md, item 7) |
+| `VITE_ELITINHO_API_URL` | vazio enquanto o Elitinho do mentor estiver desligado |
 
 Não há secret: o deploy usa OIDC, sem chave de acesso guardada.
 

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { EscopoProvider, useEscopo } from '@/contexts/EscopoContext';
 import { Loading } from '@/components/ui';
 import LoginPage from '@/pages/LoginPage';
+import { FEATURES } from '@/config';
 
 const InicioPage = lazy(() => import('@/pages/InicioPage'));
 const MentorandosPage = lazy(() => import('@/pages/MentorandosPage'));
@@ -12,6 +13,9 @@ const ConversasPage = lazy(() => import('@/pages/ConversasPage'));
 const RadarPage = lazy(() => import('@/pages/RadarPage'));
 const MentoresPage = lazy(() => import('@/pages/admin/MentoresPage'));
 const MentorPage = lazy(() => import('@/pages/admin/MentorPage'));
+const AuditoriaPage = lazy(() => import('@/pages/admin/AuditoriaPage'));
+const AgendaPage = lazy(() => import('@/pages/AgendaPage'));
+const ElitinhoPage = lazy(() => import('@/pages/ElitinhoPage'));
 const NaoEncontrada = lazy(() => import('@/pages/NaoEncontrada'));
 
 function ExigeLogin({ children }: { children: ReactNode }) {
@@ -51,6 +55,9 @@ export default function App() {
             <Route path="/conversas" element={<ExigeLogin><ExigeCarteira><ConversasPage /></ExigeCarteira></ExigeLogin>} />
             <Route path="/conversas/:threadId" element={<ExigeLogin><ExigeCarteira><ConversasPage /></ExigeCarteira></ExigeLogin>} />
             <Route path="/radar" element={<ExigeLogin><ExigeCarteira><RadarPage /></ExigeCarteira></ExigeLogin>} />
+            {FEATURES.elitinhoDoMentor && <Route path="/elitinho" element={<ExigeLogin><ExigeCarteira><ElitinhoPage /></ExigeCarteira></ExigeLogin>} />}
+            {FEATURES.acompanhamento && <Route path="/agenda" element={<ExigeLogin><ExigeCarteira><AgendaPage /></ExigeCarteira></ExigeLogin>} />}
+            {FEATURES.acompanhamento && <Route path="/admin/auditoria" element={<ExigeLogin><SoAdmin><AuditoriaPage /></SoAdmin></ExigeLogin>} />}
             <Route path="/admin/mentores" element={<ExigeLogin><SoAdmin><MentoresPage /></SoAdmin></ExigeLogin>} />
             <Route path="/admin/mentores/:id" element={<ExigeLogin><SoAdmin><MentorPage /></SoAdmin></ExigeLogin>} />
             <Route path="*" element={<NaoEncontrada />} />

@@ -44,19 +44,36 @@ Testes: domínio (`tests/revision/domain/test_evolucao.py`) e integração (`tes
 
 **Para ligar no portal:** depois do deploy do back-end, `VITE_FEATURE_METRICAS_DO_MENTOR=true` no environment `production` do GitHub e um novo deploy. O portal já tem a tela (desempenho na revisão e temas críticos).
 
-**3. Ainda não feito: simulados (prova), caderno de erros, flashcards e foco.** Não têm leitura por aluno nem para admin fora das telas próprias do hub (`exams/views/admin.py` exige `IsAdmin`). Pedem endpoints de leitura novos com a mesma regra; o portal ainda não mostra esses blocos.
+## P2: funções novas do protótipo (feitas no back-end, falta publicar)
 
-**4. (desempenho, opcional, não feito) Carteira com indicadores.** O portal monta a carteira juntando 3 listas (alunos, radar e conversas). Serve bem para centenas de alunos. Para mostrar na lista o acerto de 14 dias, a meta da semana e as revisões atrasadas de cada aluno (como no protótipo), o caminho é um `GET /mentoring/carteira/` que devolva esses números em lote, reaproveitando `radar_query.py`, que já calcula tudo por escopo com número fixo de consultas.
+Tudo abaixo está na branch `feat/api-do-portal-do-mentor` do `elite-med-back-end` (migrações 0151 e 0152, só tabelas novas) e no portal atrás de `VITE_FEATURE_ACOMPANHAMENTO`. Nada foi enviado para a `main` do back-end (um push lá dispara o deploy de produção).
 
-## P2: funções novas do protótipo
+**3. Estudo do aluno (feito).** `GET /mentoring/students/<id>/estudo/`: simulados feitos na plataforma (finalizados e parados), desempenho por área e tema (a mesma consulta da tela do aluno), caderno de erros **só por contagem** (motivo e área; a anotação e o enunciado ficam de fora), flashcards e rotinas de foco. O servidor não registra sessões de foco, só as rotinas: horas de foco não existem. Regra: quem atende o aluno ou admin; fora disso, 403 "Você não atende este aluno.".
 
-**5. Contatos, anotações privadas, pendências e plano.** Não existe nada disso no servidor: o contexto de mentoria só tem vínculo, chat e meta semanal. Precisa de modelos novos e de decisões de privacidade: anotação privada é de quem escreveu (submentor lê?), pode ter dado sensível, tem prazo de guarda e precisa responder ao direito do titular.
+**4. Carteira com indicadores (feito).** `GET /mentoring/carteira/` (paginada, `busca`, e `mentor_id` só para admin): acerto das duas janelas de 14 dias com a variação, esforço da semana contra a meta, revisões atrasadas e de hoje, dias sem questão, motivos do radar e simulado parado. Mesmas regras e mesma leitura em lote do radar, sem IA.
 
-**6. "Ver como" com auditoria por recurso.** O portal já faz o "ver como" somente leitura no navegador (o admin já tem leitura total). O que falta é a trilha "quem viu o quê": hoje `ImpersonationSessionModel` guarda só a sessão de personificação de aluno (quem, alvo, IP, navegador, início e fim). Proposta: sessão de visualização própria (`POST /mentoring/view-as/` com motivo), um cabeçalho `X-Ver-Como: <sessão>` que o servidor exige em modo somente GET e um evento por recurso aberto (conversa, perfil, nota), com leitura em `GET /mentoring/view-as/audit/`.
+**5. Contatos, anotações privadas, agenda e plano (feito).** Quatro tabelas novas e as rotas `mentoring/students/<id>/{contatos,notas,plano}/`, `mentoring/{contatos,notas,plano}/<id>/` e `mentoring/pendencias/`. Quem pode o quê, decidido no servidor:
 
-**7. Elitinho do mentor.** O serviço `elitinho` dá a mentor e submentor a mesma persona e as mesmas ferramentas do aluno, filtradas pelo próprio usuário do token, e recusa durante a personificação. Um Elitinho de apoio ao mentor precisa de persona, ferramentas filtradas por `alunos_de(ator)` e, antes de tudo, **decisão de privacidade**: mandar o desempenho do aluno a um modelo de terceiro é tratamento novo. O próprio radar foi feito sem IA por isso.
+| Recurso | Lê | Escreve |
+|---|---|---|
+| Contato com o aluno | quem atende o aluno e o admin | quem atende; só o autor altera ou apaga |
+| Plano do aluno | quem atende o aluno e o admin | quem atende; só o autor apaga |
+| Anotação privada | **só o autor** (nem o admin: 403 explícito) | só o autor |
+| Pendência e agenda | só o dono | só o dono |
 
-**8. Agregados para o admin.** Tempo médio de resposta por mentor. Hoje o portal calcula só "aguardando resposta" e "em risco" por mentor, no navegador.
+Registrar um contato cria os próximos passos e o próximo contato (pendências) na mesma transação. Id de outra pessoa responde "não encontrado". **Decisões de privacidade que ficaram em aberto para o dono:** prazo de guarda das anotações e dos contatos, e o procedimento para atender direito do titular (o admin não abre anotação pela API; abrir é um procedimento fora dela).
+
+**6. "Ver como" com auditoria (feito).** `POST /mentoring/ver-como/` (`{mentor_id, motivo, detalhe}`: motivos `suporte`, `qualidade`, `denuncia`, `lgpd`, `outro`; "outro" exige detalhe) abre uma sessão. Dali em diante o portal manda `X-Ver-Como: <sessão>` em toda requisição e **o servidor é a trava**: só leitura (403 `ver_como_somente_leitura`), só os alunos e a carteira do mentor visto (403 `ver_como_fora_do_escopo`), 30 minutos sem uso e 8 horas no máximo (403 `ver_como_encerrado`), sessão de outro admin responde como encerrada. Cada acesso é gravado **antes** de a view rodar (rota e aluno, nunca o conteúdo). Consulta só para admin: `GET /mentoring/ver-como/auditoria/` e `/<sessão>/auditoria/`; encerrar em `POST /mentoring/ver-como/<sessão>/encerrar/`. Submentor não é alvo (não tem carteira própria; vê-se a do pai). A classe de autenticação `VerComoAwareJWTAuthentication` substituiu a de personificação no DRF e a estende (tokens normais não pagam nada); o cabeçalho `X-Ver-Como` entrou no `CORS_ALLOW_HEADERS`.
+
+**7. Elitinho do mentor (feito, DESLIGADO).** Perfil de conversa para mentor e submentor no serviço `elitinho`, só leitura: ele chama o Django com o token do próprio mentor (o Django continua decidindo o escopo) e recebe só campos da lista branca e o primeiro nome do aluno. Nunca vê anotações privadas, nem conversas do aluno com o Elitinho, nem texto do caderno de erros. A chave `MENTOR_ASSISTANT_ENABLED` nasce `false` em todo ambiente, terraform incluso (`apoio_ao_mentor_ligado`). **Não ligar sem a decisão de LGPD** (base legal, aviso na política de privacidade, contrato com o provedor, retenção das conversas): o checklist está no README do serviço, em "Antes de ligar em produção". No portal, `VITE_FEATURE_ELITINHO_DO_MENTOR` + `VITE_ELITINHO_API_URL`.
+
+**8. Agregados para o admin (não feito).** Tempo médio de resposta por mentor. Hoje o portal calcula só "aguardando resposta" e "em risco" por mentor, no navegador.
+
+## Ordem para publicar
+
+1. Revisar e mesclar `feat/api-do-portal-do-mentor` na `main` do back-end (o deploy roda as migrações 0151 e 0152, só criam tabelas) e conferir o pipeline.
+2. No GitHub do portal, environment `production`: `VITE_FEATURE_METRICAS_DO_MENTOR=true` (se ainda não) e `VITE_FEATURE_ACOMPANHAMENTO=true`, e rodar o deploy do portal.
+3. Elitinho do mentor: só depois da decisão de LGPD.
 
 ## Achado de passagem
 

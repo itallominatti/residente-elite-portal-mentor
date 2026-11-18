@@ -51,3 +51,37 @@ export function CarteiraVazia() {
     </Card>
   );
 }
+
+/** Acerto das duas últimas semanas, com a variação sobre as duas anteriores. Sem respostas, não inventa número. */
+export function CelulaDeAcerto({ m }: { m: Mentorando }) {
+  const i = m.indicadores;
+  if (!i || i.acerto_recente === null) return <span className="muted t-small">{i ? 'sem respostas' : '—'}</span>;
+  const v = i.variacao_do_acerto;
+  return (
+    <span className="t-small">
+      <b className={i.acerto_recente < 55 ? 'c-bad' : i.acerto_recente < 65 ? 'c-amber' : 'c-ok'}>{i.acerto_recente}%</b>
+      {v !== null && v !== 0 && <span className={v < 0 ? 'c-bad' : 'c-ok'}> {v > 0 ? '▲' : '▼'} {Math.abs(v)}</span>}
+      <span className="muted"> · {i.respostas_recentes} questões</span>
+    </span>
+  );
+}
+
+/** Esforço da semana contra a meta combinada. */
+export function CelulaDeMeta({ m }: { m: Mentorando }) {
+  const i = m.indicadores;
+  if (!i) return <span className="muted t-small">—</span>;
+  if (i.meta_semanal === null) return <span className="muted t-small">sem meta · {i.questoes_na_semana} na semana</span>;
+  const p = i.pct_da_meta ?? 0;
+  return <span className="t-small"><b className={p < 50 ? 'c-bad' : p < 80 ? 'c-amber' : 'c-ok'}>{p}%</b><span className="muted"> · {i.questoes_na_semana} de {i.meta_semanal}</span></span>;
+}
+
+export function CelulaDeRevisoes({ m }: { m: Mentorando }) {
+  const i = m.indicadores;
+  if (!i) return <span className="muted t-small">—</span>;
+  return (
+    <span className="t-small">
+      {i.revisoes_atrasadas > 0 ? <b className={i.revisoes_atrasadas >= 5 ? 'c-bad' : 'c-amber'}>{i.revisoes_atrasadas} atrasada{i.revisoes_atrasadas > 1 ? 's' : ''}</b> : <span className="c-ok">em dia</span>}
+      {i.revisoes_de_hoje > 0 && <span className="muted"> · {i.revisoes_de_hoje} hoje</span>}
+    </span>
+  );
+}

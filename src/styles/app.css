@@ -25,3 +25,18 @@ body { background: var(--desk); }
 .skip:focus { left: 8px; }
 button.sb-i { width: 100%; text-align: left; }
 .mtop .av-btn { display: inline-flex; }
+
+/* Acompanhamento: histórico de contatos, anotações e plano. */
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.tl-item { display: flex; flex-direction: column; gap: 6px; padding: 12px 0 12px 14px; border-left: 2px solid var(--line); position: relative; }
+.tl-item::before { content: ''; position: absolute; left: -6px; top: 17px; width: 10px; height: 10px; border-radius: 50%; background: var(--teal, #256b80); border: 2px solid var(--card); }
+.notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.note { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: var(--card); }
+.objetivo { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.objetivo:first-of-type { border-top: 0; }
+.objetivo input[type=range] { width: 100%; }
+.agenda-grupo { display: flex; flex-direction: column; gap: 4px; }
+.pend { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.pend:first-of-type { border-top: 0; }
+.pend input[type=checkbox] { margin-top: 4px; width: 18px; height: 18px; }
+.pend.feita .t-strong { text-decoration: line-through; color: var(--ink2); }

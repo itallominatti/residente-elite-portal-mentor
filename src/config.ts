@@ -18,7 +18,21 @@ export const API_BASE_URL: string = (env.VITE_API_BASE_URL as string | undefined
 export const FEATURES = {
   /** Mentor lê evolução, temas prioritários e revisões do aluno (`?user_id=`). Admin sempre lê. */
   metricasDoMentor: flag(env.VITE_FEATURE_METRICAS_DO_MENTOR),
+  /**
+   * Contatos, anotações, agenda, plano, carteira com indicadores, leitura do estudo
+   * e "ver como" com sessão e trilha no servidor (commits da branch
+   * `feat/api-do-portal-do-mentor`). Ligue depois que o back-end estiver no ar.
+   */
+  acompanhamento: flag(env.VITE_FEATURE_ACOMPANHAMENTO),
+  /**
+   * Elitinho de apoio ao mentor. DESLIGADO por decisão de LGPD (dado de aluno vai a um
+   * modelo de terceiro): só liga com a decisão do dono e o serviço com `MENTOR_ASSISTANT_ENABLED`.
+   */
+  elitinhoDoMentor: flag(env.VITE_FEATURE_ELITINHO_DO_MENTOR),
 } as const;
+
+/** O serviço do Elitinho (outro host, mesmo token). */
+export const ELITINHO_API_URL: string = (env.VITE_ELITINHO_API_URL as string | undefined)?.replace(/\/$/, '') || '';
 
 /** "Ver como" encerra sozinho depois deste tempo sem uso. */
 export const VER_COMO_EXPIRA_MS = 30 * 60 * 1000;

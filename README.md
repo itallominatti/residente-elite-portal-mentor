@@ -29,6 +29,8 @@ npm run lint && npm run typecheck && npm test && npm run build
   - **Estudo:** constância das 12 semanas, questões por semana, revisões atrasadas por etapa.
   - **Plano e metas:** a meta semanal, editável.
   - Os números são "na revisão" (revisão espaçada, revisões isoladas e simulados registrados); o que o aluno responde só no banco de questões não passa por essas rotas, e as telas dizem isso. Acerto, temas e revisões atrasadas aparecem para admin e, para o mentor, quando `VITE_FEATURE_METRICAS_DO_MENTOR` estiver ligada.
+  - Com `VITE_FEATURE_ACOMPANHAMENTO` ligada (back-end com as migrações 0151 e 0152): carteira com acerto, meta e revisões por aluno; blocos de simulados, caderno de erros (só contagem), flashcards e foco; aba "Contatos e notas" (contatos, pauta para o próximo contato e anotações privadas); plano com objetivos; agenda de pendências; "ver como" com sessão no servidor e a página "Auditoria" do admin. `npm run dev:mock` já vem com tudo ligado.
+  - O Elitinho do mentor (`VITE_FEATURE_ELITINHO_DO_MENTOR`) está pronto e DESLIGADO: depende da decisão de LGPD.
 - **Conversas**: fila por espera, envio, leitura, rascunho do radar no campo (o mentor revisa e envia; nada sai sozinho), contexto do aluno ao lado.
 - **Radar**: em risco, filtros por motivo, motivos mais frequentes e o ramo (o que o mentor usava na Árvore).
 - **Admin**: lista de mentores com em risco e aguardando por mentor; "ver como" com motivo obrigatório, somente leitura (a trava fica no cliente HTTP: nenhuma escrita sai), expira em 30 min sem uso.

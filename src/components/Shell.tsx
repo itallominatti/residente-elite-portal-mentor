@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, ExternalLink, House, Lock, LogOut, MessageSquare, Radar, Users, UsersRound, Briefcase, type LucideProps } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Sparkles, Eye, ExternalLink, House, Lock, LogOut, MessageSquare, Radar, ScrollText, Users, UsersRound, Briefcase, type LucideProps } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import type { ComponentType } from 'react';
 import logo from '@/assets/logo.png';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +9,9 @@ import { useEscopo } from '@/contexts/EscopoContext';
 import { useArvore, useCarteira } from '@/hooks/useCarteira';
 import { Avatar, Btn } from '@/components/ui';
 import { hojeLongo } from '@/lib/format';
+import { listarPendencias } from '@/lib/api/acompanhamento';
+import { pedemAtencao } from '@/lib/agenda';
+import { FEATURES } from '@/config';
 
 type Icon = ComponentType<LucideProps>;
 interface Item { label: string; to: string; icon: Icon; badge?: number; bad?: boolean; ai?: boolean; off?: boolean }
@@ -34,6 +38,9 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
   const temCarteira = mentorId !== undefined;
   const { contagem } = useCarteira();
   const viewas = !!verComo;
+  // A agenda é de quem a escreve: em "ver como" ela seria a do administrador, então nem aparece.
+  const agenda = useQuery({ queryKey: ['pendencias'], queryFn: () => listarPendencias(), enabled: FEATURES.acompanhamento && temCarteira && !viewas, refetchInterval: 120_000 });
+  const naAgenda = agenda.data ? pedemAtencao(agenda.data) : 0;
   const souMentorTambem = isAdmin && !!arvore?.mentors.some(m => m.id === user?.id && m.is_mentor);
 
   const grupos: [string | null, Item[]][] = temCarteira ? [
@@ -42,9 +49,10 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
       { label: 'Mentorandos', to: '/mentorandos', icon: Users, badge: contagem.total || undefined },
       { label: 'Radar', to: '/radar', icon: Radar, badge: contagem.alerta + contagem.atencao || undefined },
     ]],
-    ['Comunicação', [{ label: 'Conversas', to: '/conversas', icon: MessageSquare, badge: contagem.esperando || undefined, bad: true }]],
+    ['Comunicação', [{ label: 'Conversas', to: '/conversas', icon: MessageSquare, badge: contagem.esperando || undefined, bad: true }, ...(FEATURES.elitinhoDoMentor && !viewas ? [{ label: 'Elitinho', to: '/elitinho', icon: Sparkles, ai: true }] : [])]],
+    ...(FEATURES.acompanhamento && !viewas ? [['Meu dia', [{ label: 'Agenda', to: '/agenda', icon: CalendarClock, badge: naAgenda || undefined }]] as [string, Item[]]] : []),
   ] : [
-    [null, [{ label: 'Mentores', to: '/admin/mentores', icon: UsersRound }]],
+    [null, [{ label: 'Mentores', to: '/admin/mentores', icon: UsersRound }, ...(FEATURES.acompanhamento ? [{ label: 'Auditoria', to: '/admin/auditoria', icon: ScrollText }] : [])]],
   ];
 
   const sairDoVerComo = () => { const id = verComo?.mentorId; sairVerComo(); nav(id ? `/admin/mentores/${id}` : '/admin/mentores'); };

@@ -2,6 +2,8 @@ import { CalendarCheck } from 'lucide-react';
 import { Card, ErrorBox, Kv, Loading, Stats } from '@/components/ui';
 import { ColChart, Heat, LegendaDaConstancia } from '@/components/charts';
 import { FonteDosNumeros, MetricasPendentes, Recomecos } from '@/pages/perfil/partes';
+import EstudoDoAluno from '@/pages/perfil/EstudoDoAluno';
+import { FEATURES } from '@/config';
 import { useAtividade, useMetricasLiberadas, useResumoDasRevisoes } from '@/hooks/useMetricas';
 
 export default function Estudo({ alunoId }: { alunoId: string }) {
@@ -14,6 +16,7 @@ export default function Estudo({ alunoId }: { alunoId: string }) {
   const pct = Math.round((c.diasAtivos / Math.max(1, c.diasNoPeriodo)) * 100);
   return (
     <>
+      {FEATURES.acompanhamento && <EstudoDoAluno alunoId={alunoId} />}
       <Stats items={[
         { label: 'Dias com atividade', value: c.diasAtivos, tone: pct >= 50 ? 'ok' : pct >= 20 ? 'amber' : 'bad', extra: `de ${c.diasNoPeriodo} (${pct}%)` },
         { label: 'Sequência atual', value: `${c.sequenciaAtual} d`, tone: c.sequenciaAtual ? 'ok' : 'bad', extra: `melhor: ${c.melhorSequencia} d` },
