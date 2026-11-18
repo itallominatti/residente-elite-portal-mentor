@@ -44,10 +44,16 @@ variable "price_class" {
   }
 }
 
-variable "github_repository" {
-  description = "Repositório que pode publicar o site, no formato dono/nome."
+variable "github_oidc_subject_prefix" {
+  description = <<-EOT
+    Prefixo do "subject" do token OIDC do GitHub para este repositório. Repositórios novos usam o formato
+    IMUTÁVEL, com os ids do dono e do repositório (não muda se o repo for renomeado ou recriado):
+      repo:<dono>@<id do dono>/<repo>@<id do repo>
+    Veja o seu em: https://api.github.com/repos/<dono>/<repo>/actions/oidc/customization/sub (campo sub_claim_prefix).
+    Repositório antigo, sem isso: repo:<dono>/<repo>.
+  EOT
   type        = string
-  default     = "itallominatti/residente-elite-portal-mentor"
+  default     = "repo:itallominatti@85942322/residente-elite-portal-mentor@1463073439"
 }
 
 variable "github_environment" {

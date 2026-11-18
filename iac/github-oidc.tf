@@ -39,12 +39,13 @@ data "aws_iam_policy_document" "confianca_deploy" {
       variable = "${local.oidc_url}:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Só jobs do environment de produção deste repositório. O environment
-    # pode exigir aprovação e ficar restrito à branch main no GitHub.
+    # Só jobs do environment de produção deste repositório (subject imutável:
+    # ids do dono e do repo). O environment pode exigir aprovação e ficar
+    # restrito à branch main no GitHub.
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_url}:sub"
-      values   = ["repo:${var.github_repository}:environment:${var.github_environment}"]
+      values   = ["${var.github_oidc_subject_prefix}:environment:${var.github_environment}"]
     }
   }
 }
