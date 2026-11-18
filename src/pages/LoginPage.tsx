@@ -34,7 +34,7 @@ export default function LoginPage() {
       <main className="auth">
         <div className="auth-card">
           <img src={logo} alt="Residente de Elite" />
-          <div className="stack-xs"><h1 className="t-h1">Portal do mentor</h1><p className="t-body muted">Entre com a mesma conta do admin-hub.</p></div>
+          <div className="stack-xs"><h1 className="t-h1">Portal do mentor</h1></div>
           {erro && <Callout icon={AlertCircle} tone="bad"><p className="t-small" role="alert">{erro}</p></Callout>}
           <form onSubmit={enviar} noValidate>
             <label className="field"><span className="t-small-strong">E-mail</span><span className="input"><input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></span></label>
@@ -42,7 +42,6 @@ export default function LoginPage() {
             <label className="hrow t-small"><input type="checkbox" checked={lembrar} onChange={e => setLembrar(e.target.checked)} /> Manter conectado neste navegador</label>
             <button className="btn btn-p full" type="submit" disabled={enviando || !email || !senha}>{enviando && <Loader2 size={16} className="spin" aria-hidden />}<span>Entrar</span></button>
           </form>
-          <p className="t-small muted">Mentores veem só os próprios mentorandos. Administradores entram no painel de mentores.</p>
         </div>
       </main>
     </div>
