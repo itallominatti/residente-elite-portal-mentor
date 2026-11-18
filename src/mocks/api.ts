@@ -103,11 +103,23 @@ async function responder(url: URL, init: RequestInit): Promise<Response> {
   if (p === '/revision/calendar-items/') {
     const id = url.searchParams.get('user_id') ?? '';
     if (!atende(id)) return json({ error: 'Você não atende este aluno.' }, 403);
-    const items = [3, 6, 9, 13, 15, 20, 24].map((d, i) => ({ kind: i % 3 ? 'isolated_revision' : 'registered_simulado', id: `c${i}`, date: iso(d * 24 + 30).slice(0, 10), occurred_at: iso(d * 24 + 30), title: ['Simulado Nacional 07', 'Sepse', 'Arritmias', 'Simulado USP 2024', 'Pneumonia', 'Insuficiência cardíaca', 'Simulado Nacional 06'][i], theme_id: null, category_name: i % 3 ? 'Clínica Médica' : null, questions_total: i % 3 ? 20 : 100, questions_correct: i % 3 ? 11 + i : 62 + i, accuracy_percentage: i % 3 ? (11 + i) * 5 : 62 + i }));
-    return json({ timezone: 'America/Sao_Paulo', start: '', end: '', items: id === 'a-rafael' ? items.slice(1) : items });
+    const parou = id === 'a-rafael';
+    const items = [3, 6, 9, 13, 15, 20, 24, 31, 38, 45, 52, 60].filter(d => !parou || d > 9).map((d, i) => ({ kind: i % 3 ? 'isolated_revision' : 'registered_simulado', id: `c${i}`, date: new Date(agora - d * 86400000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }), occurred_at: iso(d * 24 + 3), title: ['Simulado Nacional 07', 'Sepse', 'Arritmias', 'Simulado USP 2024', 'Pneumonia', 'Insuficiência cardíaca', 'Simulado Nacional 06', 'Trauma', 'Apendicite', 'Simulado Nacional 05', 'Bronquiolite', 'Pré-eclâmpsia'][i], theme_id: null, category_name: i % 3 ? 'Clínica Médica' : null, questions_total: i % 3 ? 20 : 100, questions_correct: i % 3 ? 11 + (i % 6) : 62 + i, accuracy_percentage: i % 3 ? (11 + (i % 6)) * 5 : 62 + i }));
+    return json({ timezone: 'America/Sao_Paulo', start: url.searchParams.get('start') ?? '', end: url.searchParams.get('end') ?? '', items });
   }
   if (/^\/revision\/students\/[^/]+\/resets\/$/.test(p)) return json({ results: p.includes('a-rafael') ? [{ id: 'r1', reset_at: iso(900), themes_restarted: 12, schedules_pending_removed: 18, mentor_suggestions_removed: 0 }] : [] });
-  if (p === '/revision/evolution/') return json({ summary: { total_themes: 46, total_questions_done: 1206, total_questions_correct: 772, overall_accuracy: 64, total_schedules_completed: 88, total_schedules_pending: 14 } });
+  if (p === '/revision/evolution/') {
+    const id = url.searchParams.get('user_id') ?? '';
+    if (!atende(id)) return json({ error: 'Você não atende este aluno.' }, 403);
+    // Rafael parou há 9 dias; os outros têm uma rotina regular. Contatos datados por dia, para o gráfico semanal e a constância.
+    const parou = id === 'a-rafael';
+    const contacts = (tema: string, base: number) => Array.from({ length: 84 }, (_, d) => d).filter(d => (d * 7 + tema.length) % 3 !== 0 && (!parou || d > 9) && new Date(agora - d * 86400000).getDay() !== 4)
+      .map(d => { const feitas = 6 + ((d * 5 + base) % 17); const certas = Math.round(feitas * Math.max(0.35, (parou ? 0.72 - Math.max(0, 40 - d) * 0.004 * (d < 40 ? 1 : 0) - (d < 26 ? 0.1 : 0) : 0.68) + ((d % 5) - 2) * 0.02)); return { id: `${tema}${d}`, contact_type: 'rp1', contact_date: new Date(agora - d * 86400000 - 3 * 3600000).toISOString(), questions_done: feitas, questions_correct: certas, accuracy_percentage: Math.round((certas / feitas) * 100) }; });
+    const tema = (nome: string, area: string, base: number) => { const cs = contacts(nome, base); const f = cs.reduce((x, c) => x + c.questions_done, 0), c = cs.reduce((x, k) => x + k.questions_correct, 0); return { theme_id: nome, theme_name: nome, theme_weight: 'A', category_id: area, category_name: area, total_contacts: cs.length, total_questions_done: f, total_questions_correct: c, overall_accuracy: f ? (c / f) * 100 : 0, current_stage: 'primeira', next_scheduled_date: null, schedules: [], contacts: cs }; };
+    const results = [tema('Sepse', 'Clínica Médica', 3), tema('Arritmias', 'Clínica Médica', 7), tema('Pneumonia', 'Clínica Médica', 1), tema('Trauma', 'Cirurgia', 5), tema('Apendicite', 'Cirurgia', 2), tema('Bronquiolite', 'Pediatria', 9), tema('Pré-eclâmpsia', 'Ginecologia e Obstetrícia', 4)];
+    const f = results.reduce((x, r) => x + r.total_questions_done, 0), c = results.reduce((x, r) => x + r.total_questions_correct, 0);
+    return json({ count: results.length, page: 1, page_size: 50, total_pages: 1, summary: { total_themes: results.length, total_questions_done: f, total_questions_correct: c, overall_accuracy: f ? (c / f) * 100 : 0, total_schedules_completed: 88, total_schedules_pending: 14 }, results });
+  }
   if (p === '/revision/priority-themes/') return json({ summary: { critico: 2, prioritario: 3, suporte_secundario: 9, total_evaluated: 14 }, levels: [{ key: 'critico', title: 'Crítico', count: 2, themes: [{ theme_id: 't1', theme_name: 'Sepse', category_name: 'Clínica Médica', total_questions_done: 38, overall_accuracy: 41 }, { theme_id: 't2', theme_name: 'Arritmias', category_name: 'Clínica Médica', total_questions_done: 44, overall_accuracy: 48 }] }] });
   if (p === '/revision/schedules/') return json([{ id: 's1', theme_name: 'Sepse', stage: 'primeira', scheduled_date: '2026-11-01', completed: false }, { id: 's2', theme_name: 'DPOC', stage: 'segunda', scheduled_date: '2099-01-01', completed: false }]);
   return json({ detail: `Mock sem rota: ${metodo} ${p}` }, 404);

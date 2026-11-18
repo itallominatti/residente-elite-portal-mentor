@@ -12,7 +12,7 @@
  *   isso só são chamados por admin ou com `VITE_FEATURE_METRICAS_DO_MENTOR`
  *   ligada (depois desse back-end publicado).
  */
-import { qs, request } from '@/lib/http';
+import { qs, request, todasAsPaginas } from '@/lib/http';
 
 export interface ItemDoCalendario {
   kind: 'isolated_revision' | 'registered_simulado'; id: string; date: string; occurred_at: string;
@@ -25,10 +25,28 @@ export const getItensDoCalendario = (alunoId: string, start: string, end: string
 export interface Recomeco { id: string; reset_at: string; themes_restarted: number; schedules_pending_removed: number; mentor_suggestions_removed: number }
 export const getRecomecos = (alunoId: string) => request<{ results: Recomeco[] }>(`/revision/students/${alunoId}/resets/`);
 
-// ---- só admin hoje (ou com o ajuste do servidor) ----
+// ---- só admin hoje (ou para o mentor, com o back-end do commit 226cc1e no ar) ----
+export interface ContatoDaRevisao { id: string; contact_type: string; contact_date: string; questions_done: number; questions_correct: number; accuracy_percentage: number }
+export interface TemaDaEvolucao {
+  theme_id: string; theme_name: string; category_name: string;
+  total_questions_done: number; total_questions_correct: number; overall_accuracy: number;
+  current_stage: string; contacts: ContatoDaRevisao[];
+}
 export interface ResumoDaEvolucao { total_themes: number; total_questions_done: number; total_questions_correct: number; overall_accuracy: number; total_schedules_completed: number; total_schedules_pending: number }
-export const getEvolucao = (alunoId: string) =>
-  request<{ summary: ResumoDaEvolucao }>(`/revision/evolution/${qs({ user_id: alunoId, page: 1, page_size: 1 })}`);
+export interface Evolucao { summary: ResumoDaEvolucao; temas: TemaDaEvolucao[] }
+
+interface PaginaDaEvolucao { summary: ResumoDaEvolucao; results: TemaDaEvolucao[]; total_pages?: number }
+
+/** Toda a evolução do aluno (50 temas por página é o teto do servidor; para em 20 páginas). */
+export async function getEvolucao(alunoId: string): Promise<Evolucao> {
+  let resumo: ResumoDaEvolucao | null = null;
+  const temas = await todasAsPaginas<TemaDaEvolucao>(async p => {
+    const r = await request<PaginaDaEvolucao>(`/revision/evolution/${qs({ user_id: alunoId, page: p, page_size: 50 })}`);
+    if (p === 1) resumo = r.summary;
+    return { itens: r.results ?? [], temProxima: p < (r.total_pages ?? 1) };
+  });
+  return { summary: resumo ?? { total_themes: 0, total_questions_done: 0, total_questions_correct: 0, overall_accuracy: 0, total_schedules_completed: 0, total_schedules_pending: 0 }, temas };
+}
 
 export interface TemaPrioritario { theme_id: string; theme_name: string; category_name: string; total_questions_done: number; overall_accuracy: number }
 export interface NivelDePrioridade { key: 'critico' | 'prioritario' | 'suporte_secundario'; title: string; count: number; themes: TemaPrioritario[] }

@@ -47,6 +47,7 @@ export default function App() {
             <Route path="/" element={<ExigeLogin><ExigeCarteira><InicioPage /></ExigeCarteira></ExigeLogin>} />
             <Route path="/mentorandos" element={<ExigeLogin><ExigeCarteira><MentorandosPage /></ExigeCarteira></ExigeLogin>} />
             <Route path="/mentorandos/:id" element={<ExigeLogin><ExigeCarteira><PerfilPage /></ExigeCarteira></ExigeLogin>} />
+            <Route path="/mentorandos/:id/:aba" element={<ExigeLogin><ExigeCarteira><PerfilPage /></ExigeCarteira></ExigeLogin>} />
             <Route path="/conversas" element={<ExigeLogin><ExigeCarteira><ConversasPage /></ExigeCarteira></ExigeLogin>} />
             <Route path="/conversas/:threadId" element={<ExigeLogin><ExigeCarteira><ConversasPage /></ExigeCarteira></ExigeLogin>} />
             <Route path="/radar" element={<ExigeLogin><ExigeCarteira><RadarPage /></ExigeCarteira></ExigeLogin>} />
