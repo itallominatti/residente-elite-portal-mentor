@@ -127,7 +127,7 @@ github-vars: ## Imprime as variáveis do environment `production` do GitHub
 	@echo "  S3_BUCKET                        $$bucket"
 	@echo "  CLOUDFRONT_DISTRIBUTION_ID       $$dist"
 	@echo "  VITE_API_BASE_URL                https://api.residente-elite.com/api/v1"
-	@echo "  VITE_FEATURE_METRICAS_DO_MENTOR  false   (true depois do back-end com feat/mentor-le-revisao-do-aluno)"
+	@echo "  VITE_FEATURE_METRICAS_DO_MENTOR  false   (true depois do deploy do back-end com o commit 226cc1e)"
 	@echo
 	@echo "Antes do primeiro acesso: incluir $$url no CORS_ALLOWED_ORIGINS da API."
 	@if command -v gh >/dev/null; then

@@ -25,7 +25,7 @@ Levantamento feito lendo o código em 18/11/2026 (nenhum arquivo do back-end foi
 
 ## P1: para o mentor ver todas as métricas do mentorando (feito, falta publicar)
 
-Feito no `elite-med-back-end`, branch `feat/mentor-le-revisao-do-aluno` (sem push).
+Feito no `elite-med-back-end` e já na `main` (commit `226cc1e`). Falta commitar a regravação da fotografia de contrato `test_g4_revisao::test_hub_acompanha_a_agenda_do_aluno`, que ainda registra o comportamento antigo.
 
 **2. Leitura da revisão do aluno pelo mentor.** Antes, `usuario_alvo` (`internal/domain/revision/services.py`) só honrava `?user_id=` para admin: o mentor que pedia a evolução de um aluno recebia **a própria**, com 200 e sem erro. Agora:
 
