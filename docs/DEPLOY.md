@@ -23,7 +23,7 @@ Os passos abaixo são o que o `make` faz por baixo.
 
 ## 1. Estado remoto (uma vez por conta)
 
-Se a conta ainda não tem bucket de estado do Terraform:
+Na conta de produção já existe o bucket `residente-elite-tfstate` (versionado), usado pelos outros projetos; o portal guarda o estado em `prod/portal-mentor.tfstate` e **este passo não é necessário**. Só se a conta ainda não tiver bucket de estado do Terraform:
 
 ```bash
 cd iac/bootstrap
@@ -37,7 +37,7 @@ Se já existe um, pule e use o nome dele no passo seguinte.
 
 ```bash
 cd iac
-cp backend.hcl.example backend.hcl          # ajuste o bucket se for outro
+cp backend.hcl.example backend.hcl          # já aponta para residente-elite-tfstate
 terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply

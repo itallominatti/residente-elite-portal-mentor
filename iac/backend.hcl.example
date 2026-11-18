@@ -1,7 +1,9 @@
-# Copie para backend.hcl (fora do git) e rode: terraform init -backend-config=backend.hcl
-# O bucket é criado uma vez pelo módulo bootstrap/.
-bucket       = "residente-elite-terraform-state"
-key          = "portal-mentor/terraform.tfstate"
+# O Makefile copia este arquivo para backend.hcl (fora do git) no `make init`.
+# Aponta para o bucket de estado que a conta já usa nos outros projetos
+# (prod/api-edge.tfstate, prod/elitinho.tfstate...). Versionado.
+# Se a conta NÃO tiver um, rode `make bootstrap` e use o nome que ele criar.
+bucket       = "residente-elite-tfstate"
+key          = "prod/portal-mentor.tfstate"
 region       = "us-east-1"
 encrypt      = true
 use_lockfile = true
