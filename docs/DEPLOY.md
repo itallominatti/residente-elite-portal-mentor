@@ -2,6 +2,25 @@
 
 Tudo em `us-east-1`, na mesma conta e na mesma zona do Route 53 do admin-hub (`residente-elite.com`). O site fica em `https://mentor.residente-elite.com`.
 
+## Atalho: `make`
+
+O `Makefile` da raiz faz os passos 1 e 2 com as travas de segurança. Rode no Git Bash ou WSL:
+
+```bash
+make help                      # lista os alvos
+make quem-sou                  # em qual conta AWS os comandos vão rodar
+make bootstrap                 # (uma vez por conta) bucket do estado remoto
+make prod                      # init + plan + pede "sim" + apply + imprime as variáveis do GitHub
+make prod OIDC=true            # idem, criando o provedor OIDC do GitHub (conta que ainda não tem)
+make plan && make apply        # mudanças seguintes: revisa o plano e aplica exatamente ele
+make github-vars               # reimprime as variáveis do environment production
+make validate                  # o mesmo fmt/validate do CI, sem credenciais
+```
+
+`AWS_PROFILE=perfil` escolhe o perfil da AWS e `CONTA_ESPERADA=123456789012` recusa rodar em outra conta. `make destroy` só roda com `CONFIRMAR=derrubar-portal-mentor`.
+
+Os passos abaixo são o que o `make` faz por baixo.
+
 ## 1. Estado remoto (uma vez por conta)
 
 Se a conta ainda não tem bucket de estado do Terraform:
