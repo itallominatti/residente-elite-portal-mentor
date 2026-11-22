@@ -57,11 +57,15 @@ export interface Contato {
 }
 export interface NovoContato {
   canal: Canal; resumo: string; humor?: Humor | null; duracao_min?: number | null; ocorreu_em?: string;
-  proximos_passos?: { titulo: string; prazo?: string }[]; proximo_contato?: { quando: string; canal?: Canal };
+  proximos_passos?: { titulo: string; prazo?: string }[];
+  proximo_contato?: { quando: string; canal?: Canal; convite_meet?: boolean; duracao_min?: number };
 }
+
+/** O que aconteceu com o convite do Meet pedido junto com o registro: o registro fica mesmo se o Google falhar. */
+export interface ResultadoDoConvite { meet_url: string | null; erro: string | null; code: string | null }
 export const listarContatos = (alunoId: string) => request<{ results: Contato[] }>(`/mentoring/students/${alunoId}/contatos/`).then(r => r.results);
 export const registrarContato = (alunoId: string, c: NovoContato) =>
-  request<Contato>(`/mentoring/students/${alunoId}/contatos/`, { method: 'POST', body: JSON.stringify(c) });
+  request<Contato & { convite?: ResultadoDoConvite }>(`/mentoring/students/${alunoId}/contatos/`, { method: 'POST', body: JSON.stringify(c) });
 export const excluirContato = (id: string) => request<void>(`/mentoring/contatos/${id}/`, { method: 'DELETE' });
 
 // ---------- anotações privadas ----------
@@ -76,14 +80,30 @@ export const excluirNota = (id: string) => request<void>(`/mentoring/notas/${id}
 export interface Pendencia {
   id: string; student_id: string | null; student_name: string | null; kind: 'tarefa' | 'contato'; channel: Canal | null;
   title: string; due_at: string | null; done_at: string | null; source_contact_id: string | null; created_at: string;
+  /** Link do Meet, quando o convite foi enviado ao aluno. */
+  meet_url: string | null;
 }
 export interface FiltroDePendencias { feitas?: boolean; de?: string; ate?: string; alunoId?: string }
 export const listarPendencias = (f: FiltroDePendencias = {}) =>
   request<{ results: Pendencia[] }>(`/mentoring/pendencias/${qs({ feitas: f.feitas, de: f.de, ate: f.ate, aluno_id: f.alunoId })}`).then(r => r.results);
-export interface NovaPendencia { titulo: string; tipo?: 'tarefa' | 'contato'; aluno_id?: string | null; para_quando?: string | null; canal?: Canal | null }
-export const criarPendencia = (p: NovaPendencia) => request<Pendencia>('/mentoring/pendencias/', { method: 'POST', body: JSON.stringify(p) });
+export interface NovaPendencia {
+  titulo: string; tipo?: 'tarefa' | 'contato'; aluno_id?: string | null; para_quando?: string | null; canal?: Canal | null;
+  convite_meet?: boolean; duracao_min?: number;
+}
+export const criarPendencia = (p: NovaPendencia) => request<Pendencia & { convite?: ResultadoDoConvite }>('/mentoring/pendencias/', { method: 'POST', body: JSON.stringify(p) });
 export const marcarPendencia = (id: string, feita: boolean) => request<Pendencia>(`/mentoring/pendencias/${id}/`, { method: 'PATCH', body: JSON.stringify({ feita }) });
 export const excluirPendencia = (id: string) => request<void>(`/mentoring/pendencias/${id}/`, { method: 'DELETE' });
+
+// ---------- conta Google e convite do Meet ----------
+export interface StatusDoGoogle { enabled: boolean; connected: boolean; google_email: string | null }
+export const getGoogle = () => request<StatusDoGoogle>('/mentoring/google/');
+/** O servidor devolve a URL de autorização do Google; o portal navega para ela e o Google volta para `/agenda?google=...`. */
+export const iniciarConexaoGoogle = () => request<{ url: string }>('/mentoring/google/connect/', { method: 'POST' }).then(r => r.url);
+export const desconectarGoogle = () => request<void>('/mentoring/google/', { method: 'DELETE' });
+export const DURACOES_DO_MEET = [30, 45, 60, 90] as const;
+export const enviarConviteMeet = (pendenciaId: string, duracaoMin?: number) =>
+  request<Pendencia>(`/mentoring/pendencias/${pendenciaId}/meet/`, { method: 'POST', body: JSON.stringify(duracaoMin ? { duracao_min: duracaoMin } : {}) });
+export const cancelarConviteMeet = (pendenciaId: string) => request<Pendencia>(`/mentoring/pendencias/${pendenciaId}/meet/`, { method: 'DELETE' });
 
 // ---------- plano do aluno ----------
 export interface Objetivo {

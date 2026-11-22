@@ -19,9 +19,23 @@ const novoId = () => `mk-${seq++}`;
 
 type Contato = { id: string; student_id: string; author_id: string; author_name: string; channel: string; occurred_at: string; duration_min: number | null; summary: string; mood: string | null; created_at: string };
 type Nota = { id: string; student_id: string; author_id: string; body: string; sensitive: boolean; created_at: string; updated_at: string };
-type Pend = { id: string; owner_id: string; student_id: string | null; student_name: string | null; kind: string; channel: string | null; title: string; due_at: string | null; done_at: string | null; source_contact_id: string | null; created_at: string };
+type Pend = { id: string; owner_id: string; student_id: string | null; student_name: string | null; kind: string; channel: string | null; title: string; due_at: string | null; done_at: string | null; source_contact_id: string | null; created_at: string; meet_url: string | null };
 type Obj = { id: string; student_id: string; author_id: string; author_name: string; title: string; detail: string; due_date: string | null; progress: number; done_at: string | null; created_at: string; updated_at: string };
 type Sessao = { id: string; admin_id: string; admin_name: string; mentor_id: string; mentor_name: string; reason: string; detail: string; started_at: string; last_seen_at: string; ended_at: string | null; ip_address: string | null; events: { at: string; method: string; route: string; student_id: string | null; student_name: string | null }[] };
+
+// Convite do Meet: conta Google conectada ou não (o mock deixa testar os dois caminhos).
+// Guardada na sessão do navegador: o retorno do Google recarrega a página, e a conexão tem de sobreviver a isso.
+let googleConectado = (() => { try { return sessionStorage.getItem('mock_google') === '1'; } catch { return false; } })();
+const lembrarGoogle = (v: boolean) => { googleConectado = v; try { sessionStorage.setItem('mock_google', v ? '1' : '0'); } catch { /* sem storage */ } };
+const GOOGLE_EMAIL = 'mentora@exemplo.com';
+
+function convidar(ctx: ContextoDoMock, t: Pend): { meet_url: string | null; erro: string | null; code: string | null } {
+  if (!googleConectado) return { meet_url: null, erro: 'Conecte sua conta Google para enviar convites do Meet.', code: 'google_nao_conectado' };
+  if (t.kind !== 'contato' || !t.student_id || !t.due_at || Date.parse(t.due_at) <= ctx.agora) return { meet_url: null, erro: 'Só um contato agendado, no futuro e ligado a um aluno, recebe convite do Meet.', code: null };
+  t.meet_url = `https://meet.google.com/mock-${t.id.slice(3)}-abc`;
+  t.channel = 'video';
+  return { meet_url: t.meet_url, erro: null, code: null };
+}
 
 const contatos: Contato[] = [];
 const notas: Nota[] = [];
@@ -39,9 +53,9 @@ function semear(ctx: ContextoDoMock) {
     { id: novoId(), student_id: 'a-rafael', author_id: ANA, author_name: ctx.nomeDoMentor[ANA]!, channel: 'mensagem', occurred_at: iso(ctx, 24 * 30), duration_min: null, summary: 'Primeiro contato: apresentei a mentoria e pedi a prova-alvo.', mood: 'motivado', created_at: iso(ctx, 24 * 30) },
   );
   pendencias.push(
-    { id: novoId(), owner_id: ANA, student_id: 'a-rafael', student_name: 'Rafael Teixeira', kind: 'contato', channel: 'ligacao', title: 'Contato com Rafael', due_at: iso(ctx, -3), done_at: null, source_contact_id: null, created_at: iso(ctx, 24) },
-    { id: novoId(), owner_id: ANA, student_id: 'a-camila', student_name: 'Camila Duarte', kind: 'tarefa', channel: null, title: 'Montar plano de revisão de Cardiologia', due_at: iso(ctx, 30), done_at: null, source_contact_id: null, created_at: iso(ctx, 60) },
-    { id: novoId(), owner_id: ANA, student_id: null, student_name: null, kind: 'tarefa', channel: null, title: 'Preparar relatório mensal da carteira', due_at: null, done_at: null, source_contact_id: null, created_at: iso(ctx, 90) },
+    { id: novoId(), owner_id: ANA, student_id: 'a-rafael', student_name: 'Rafael Teixeira', kind: 'contato', channel: 'ligacao', title: 'Contato com Rafael', due_at: iso(ctx, -3), done_at: null, source_contact_id: null, created_at: iso(ctx, 24), meet_url: null },
+    { id: novoId(), owner_id: ANA, student_id: 'a-camila', student_name: 'Camila Duarte', kind: 'tarefa', channel: null, title: 'Montar plano de revisão de Cardiologia', due_at: iso(ctx, 30), done_at: null, source_contact_id: null, created_at: iso(ctx, 60), meet_url: null },
+    { id: novoId(), owner_id: ANA, student_id: null, student_name: null, kind: 'tarefa', channel: null, title: 'Preparar relatório mensal da carteira', due_at: null, done_at: null, source_contact_id: null, created_at: iso(ctx, 90), meet_url: null },
   );
   objetivos.push({ id: novoId(), student_id: 'a-rafael', author_id: ANA, author_name: ctx.nomeDoMentor[ANA]!, title: 'Fechar Cardiologia e Pediatria', detail: 'Antes do simulado de dezembro.', due_date: '2026-12-10', progress: 35, done_at: null, created_at: iso(ctx, 24 * 12), updated_at: iso(ctx, 24 * 5) });
 }
@@ -134,10 +148,12 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
         if (!b.resumo || !b.canal) return json({ error: !b.canal ? 'Informe o canal do contato.' : 'Informe o resumo do contato.' }, 400);
         const c: Contato = { id: novoId(), student_id: id, author_id: quem.user, author_name: ctx.nomeDoMentor[quem.user] ?? '', channel: String(b.canal), occurred_at: String(b.ocorreu_em ?? new Date(ctx.agora).toISOString()), duration_min: (b.duracao_min as number | null) ?? null, summary: String(b.resumo), mood: (b.humor as string | null) ?? null, created_at: new Date(ctx.agora).toISOString() };
         contatos.unshift(c);
-        for (const passo of (b.proximos_passos as { titulo: string; prazo?: string }[] | undefined) ?? []) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'tarefa', channel: null, title: passo.titulo, due_at: passo.prazo ? `${passo.prazo}T23:59:00-03:00` : null, done_at: null, source_contact_id: c.id, created_at: c.created_at });
-        const prox = b.proximo_contato as { quando: string; canal?: string } | undefined;
-        if (prox) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'contato', channel: prox.canal ?? c.channel, title: `Contato com ${nome(id).split(' ')[0]}`, due_at: prox.quando, done_at: null, source_contact_id: c.id, created_at: c.created_at });
-        return json(c, 201);
+        for (const passo of (b.proximos_passos as { titulo: string; prazo?: string }[] | undefined) ?? []) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'tarefa', channel: null, title: passo.titulo, due_at: passo.prazo ? `${passo.prazo}T23:59:00-03:00` : null, done_at: null, source_contact_id: c.id, created_at: c.created_at, meet_url: null });
+        const prox = b.proximo_contato as { quando: string; canal?: string; convite_meet?: boolean } | undefined;
+        let convite: { meet_url: string | null; erro: string | null; code: string | null } | undefined;
+        if (prox) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'contato', channel: prox.canal ?? c.channel, title: `Contato com ${nome(id).split(' ')[0]}`, due_at: prox.quando, done_at: null, source_contact_id: c.id, created_at: c.created_at, meet_url: null });
+        if (prox?.convite_meet) { const t = pendencias[pendencias.length - 1]!; convite = convidar(ctx, t); }
+        return json(convite ? { ...c, convite } : c, 201);
       }
       return json({ results: contatos.filter(c => c.student_id === id).sort((a, b) => b.occurred_at.localeCompare(a.occurred_at)) });
     }
@@ -176,14 +192,33 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
     if (metodo === 'PATCH') { n.body = String(corpo().texto ?? n.body); n.updated_at = new Date(ctx.agora + 1000).toISOString(); return json(n); }
   }
 
+  if (p === '/mentoring/google/') {
+    if (metodo === 'DELETE') { lembrarGoogle(false); return json(undefined, 204); }
+    return json({ enabled: true, connected: googleConectado, google_email: googleConectado ? GOOGLE_EMAIL : null });
+  }
+  if (p === '/mentoring/google/connect/' && metodo === 'POST') {
+    // No servidor real a URL é a do Google; o mock "autoriza" na hora e volta para a agenda.
+    lembrarGoogle(true);
+    return json({ url: `${window.location.origin}/agenda?google=conectado` });
+  }
+  const meet = p.match(/^\/mentoring\/pendencias\/([^/]+)\/meet\/$/);
+  if (meet) {
+    const t = pendencias.find(x => x.id === meet[1]);
+    if (!t || t.owner_id !== quem.user) return json({ error: 'Registro não encontrado.' }, 404);
+    if (metodo === 'DELETE') { t.meet_url = null; return json(t); }
+    const r = convidar(ctx, t);
+    return r.erro ? json({ error: r.erro, ...(r.code ? { code: r.code } : {}) }, r.code === 'google_nao_conectado' ? 409 : 400) : json(t);
+  }
+
   if (p === '/mentoring/pendencias/') {
     if (metodo === 'POST') {
       const b = corpo();
       if (!String(b.titulo ?? '').trim()) return json({ error: 'Informe o título.' }, 400);
       if (b.tipo === 'contato' && !b.para_quando) return json({ error: 'Um contato agendado precisa de data e hora.' }, 400);
       if (b.aluno_id && !ctx.escopo().some(a => a[0] === b.aluno_id)) return naoAtende();
-      const t: Pend = { id: novoId(), owner_id: quem.user, student_id: (b.aluno_id as string | null) ?? null, student_name: b.aluno_id ? nome(String(b.aluno_id)) : null, kind: String(b.tipo ?? 'tarefa'), channel: (b.canal as string | null) ?? null, title: String(b.titulo), due_at: (b.para_quando as string | null) ?? null, done_at: null, source_contact_id: null, created_at: new Date(ctx.agora).toISOString() };
+      const t: Pend = { id: novoId(), owner_id: quem.user, student_id: (b.aluno_id as string | null) ?? null, student_name: b.aluno_id ? nome(String(b.aluno_id)) : null, kind: String(b.tipo ?? 'tarefa'), channel: (b.canal as string | null) ?? null, title: String(b.titulo), due_at: (b.para_quando as string | null) ?? null, done_at: null, source_contact_id: null, created_at: new Date(ctx.agora).toISOString(), meet_url: null };
       pendencias.push(t);
+      if (b.convite_meet) return json({ ...t, convite: convidar(ctx, t) }, 201);
       return json(t, 201);
     }
     const feitas = url.searchParams.get('feitas'), aluno = url.searchParams.get('aluno_id');

@@ -1,9 +1,10 @@
 /* Registrar um contato com o aluno: o que foi falado, como ele saiu, os próximos passos e o próximo contato. */
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { Sheet } from '@/components/Sheet';
-import { CANAIS, HUMORES, registrarContato, type Canal, type Humor, type NovoContato } from '@/lib/api/acompanhamento';
+import { Callout } from '@/components/ui';
+import { CANAIS, getGoogle, HUMORES, registrarContato, type Canal, type Humor, type NovoContato } from '@/lib/api/acompanhamento';
 
 /** `<input type="datetime-local">` quer `yyyy-MM-ddTHH:mm` na hora local. */
 const paraCampo = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -21,6 +22,10 @@ export function RegistrarContato({ alunoId, alunoNome, fechar }: { alunoId: stri
   const [passos, setPassos] = useState<Passo[]>([]);
   const [agendar, setAgendar] = useState(false);
   const [proximo, setProximo] = useState('');
+  const [convite, setConvite] = useState(false);
+  const [avisoDoConvite, setAvisoDoConvite] = useState<string | null>(null);
+  const google = useQuery({ queryKey: ['google'], queryFn: getGoogle, retry: false, staleTime: 60_000 });
+  const podeConvidar = google.data?.enabled === true && google.data.connected;
 
   const salvar = useMutation({
     mutationFn: () => {
@@ -28,12 +33,14 @@ export function RegistrarContato({ alunoId, alunoNome, fechar }: { alunoId: stri
         canal, resumo: resumo.trim(), ocorreu_em: doCampo(quando),
         duracao_min: duracao ? Number(duracao) : null, humor: humor || null,
         proximos_passos: passos.filter(p => p.titulo.trim()).map(p => ({ titulo: p.titulo.trim(), ...(p.prazo ? { prazo: p.prazo } : {}) })),
-        ...(agendar && proximo ? { proximo_contato: { quando: doCampo(proximo), canal } } : {}),
+        ...(agendar && proximo ? { proximo_contato: { quando: doCampo(proximo), canal, ...(convite && podeConvidar ? { convite_meet: true } : {}) } } : {}),
       };
       return registrarContato(alunoId, corpo);
     },
-    onSuccess: () => {
+    onSuccess: r => {
       for (const k of ['contatos', 'pendencias']) qc.invalidateQueries({ queryKey: [k] });
+      // O contato foi salvo; se o convite falhou, o mentor vê por quê antes de fechar.
+      if (r.convite?.erro) { setAvisoDoConvite(`O contato foi salvo, mas o convite do Meet não saiu: ${r.convite.erro} Você pode enviar depois pela Agenda.`); return; }
       fechar();
     },
   });
@@ -41,6 +48,13 @@ export function RegistrarContato({ alunoId, alunoNome, fechar }: { alunoId: stri
   const valido = resumo.trim().length > 0 && !!quando && (!agendar || !!proximo) && (!duracao || (Number(duracao) >= 1 && Number(duracao) <= 1440));
   const mudaPasso = (i: number, campo: Partial<Passo>) => setPassos(ps => ps.map((p, j) => (j === i ? { ...p, ...campo } : p)));
 
+  if (avisoDoConvite) {
+    return (
+      <Sheet titulo="Contato salvo" fechar={fechar} aoEnviar={fechar} enviar="Entendi">
+        <Callout icon={Plus} tone="amber"><p className="t-small">{avisoDoConvite}</p></Callout>
+      </Sheet>
+    );
+  }
   return (
     <Sheet titulo={`Registrar contato com ${alunoNome.split(' ')[0]}`} fechar={fechar} aoEnviar={() => salvar.mutate()} enviar="Salvar contato" enviando={salvar.isPending} desabilitado={!valido} erro={salvar.error}>
       <div className="goal-form">
@@ -66,6 +80,10 @@ export function RegistrarContato({ alunoId, alunoNome, fechar }: { alunoId: stri
 
       <label className="hrow t-small"><input type="checkbox" checked={agendar} onChange={e => setAgendar(e.target.checked)} /> Já agendar o próximo contato</label>
       {agendar && <label className="field"><span className="t-small-strong">Próximo contato</span><span className="input"><input type="datetime-local" required min={paraCampo(new Date())} value={proximo} onChange={e => setProximo(e.target.value)} /></span></label>}
+      {agendar && podeConvidar && (
+        <label className="hrow t-small"><input type="checkbox" checked={convite} onChange={e => setConvite(e.target.checked)} /> Enviar convite do Google Meet para o aluno (o Google manda o e-mail com o link)</label>
+      )}
+      {agendar && google.data?.enabled && !google.data.connected && <span className="t-small muted">Para enviar convite do Meet, conecte sua conta Google na página Agenda.</span>}
     </Sheet>
   );
 }

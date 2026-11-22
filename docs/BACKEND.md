@@ -67,6 +67,8 @@ Registrar um contato cria os próximos passos e o próximo contato (pendências)
 
 **7. Elitinho do mentor (feito, DESLIGADO).** Perfil de conversa para mentor e submentor no serviço `elitinho`, só leitura: ele chama o Django com o token do próprio mentor (o Django continua decidindo o escopo) e recebe só campos da lista branca e o primeiro nome do aluno. Nunca vê anotações privadas, nem conversas do aluno com o Elitinho, nem texto do caderno de erros. A chave `MENTOR_ASSISTANT_ENABLED` nasce `false` em todo ambiente, terraform incluso (`apoio_ao_mentor_ligado`). **Não ligar sem a decisão de LGPD** (base legal, aviso na política de privacidade, contrato com o provedor, retenção das conversas): o checklist está no README do serviço, em "Antes de ligar em produção". No portal, `VITE_FEATURE_ELITINHO_DO_MENTOR` + `VITE_ELITINHO_API_URL`.
 
+**7b. Convite do Google Meet (feito, DESLIGADO até configurar).** Cada mentor conecta a própria conta Google e pode enviar convite do Meet ao agendar um contato; o evento nasce na agenda dele e o Google avisa o aluno. Migração 0153 (só tabela e colunas novas). Tudo o que é preciso configurar (Google Cloud, variáveis do serviço, decisão de privacidade) está em `docs/GOOGLE-MEET.md`.
+
 **8. Agregados para o admin (não feito).** Tempo médio de resposta por mentor. Hoje o portal calcula só "aguardando resposta" e "em risco" por mentor, no navegador.
 
 ## Ordem para publicar

@@ -14,7 +14,7 @@ const contato = (extra: Partial<Contato> = {}): Contato => ({
 });
 const pend = (extra: Partial<Pendencia> = {}): Pendencia => ({
   id: 'p1', student_id: 'a1', student_name: 'Rafael', kind: 'tarefa', channel: null, title: 'Refazer simulado', due_at: '2026-11-15T20:00:00Z', done_at: null,
-  source_contact_id: null, created_at: '2026-11-10T12:30:00Z', ...extra,
+  source_contact_id: null, meet_url: null, created_at: '2026-11-10T12:30:00Z', ...extra,
 });
 const objetivo = (extra: Partial<Objetivo> = {}): Objetivo => ({
   id: 'o1', student_id: 'a1', author_id: 'm', author_name: 'Ana', title: 'Fechar Pediatria', detail: '', due_date: '2026-12-01', progress: 40, done_at: null,
