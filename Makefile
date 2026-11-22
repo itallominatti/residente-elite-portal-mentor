@@ -128,7 +128,7 @@ github-vars: ## Imprime as variáveis do environment `production` do GitHub
 	@echo "  CLOUDFRONT_DISTRIBUTION_ID       $$dist"
 	@echo "  VITE_API_BASE_URL                https://api.residente-elite.com/api/v1"
 	@echo "  VITE_FEATURE_METRICAS_DO_MENTOR  false   (true depois do deploy do back-end com o commit 226cc1e)"
-	@echo "  VITE_FEATURE_ACOMPANHAMENTO      false   (true depois do deploy do back-end com as migracoes 0151 e 0152)"
+	@echo "  VITE_FEATURE_ACOMPANHAMENTO      (opcional; ligada por padrao, false desliga)"
 	@echo "  VITE_FEATURE_ELITINHO_DO_MENTOR  false   (so liga com a decisao de LGPD)"
 	@echo
 	@echo "Antes do primeiro acesso: incluir $$url no CORS_ALLOWED_ORIGINS da API."

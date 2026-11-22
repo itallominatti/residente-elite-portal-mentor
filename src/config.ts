@@ -11,6 +11,8 @@
 const env = import.meta.env;
 
 const flag = (v: unknown) => String(v ?? '').trim().toLowerCase() === 'true';
+/** Ligada por padrão: só o valor `false` desliga. Para funções cujo servidor já está no ar. */
+const flagLigadaPorPadrao = (v: unknown) => String(v ?? '').trim().toLowerCase() !== 'false';
 
 export const API_BASE_URL: string = (env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
   || 'https://api.residente-elite.com/api/v1';
@@ -21,9 +23,10 @@ export const FEATURES = {
   /**
    * Contatos, anotações, agenda, plano, carteira com indicadores, leitura do estudo
    * e "ver como" com sessão e trilha no servidor (commits da branch
-   * `feat/api-do-portal-do-mentor`). Ligue depois que o back-end estiver no ar.
+   * `feat/api-do-portal-do-mentor`). O back-end já está no ar (2640eea na main): vem LIGADA por
+   * padrão e só `VITE_FEATURE_ACOMPANHAMENTO=false` a desliga.
    */
-  acompanhamento: flag(env.VITE_FEATURE_ACOMPANHAMENTO),
+  acompanhamento: flagLigadaPorPadrao(env.VITE_FEATURE_ACOMPANHAMENTO),
   /**
    * Elitinho de apoio ao mentor. DESLIGADO por decisão de LGPD (dado de aluno vai a um
    * modelo de terceiro): só liga com a decisão do dono e o serviço com `MENTOR_ASSISTANT_ENABLED`.
