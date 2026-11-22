@@ -27,7 +27,17 @@ export default function ConversasPage() {
     return t ? conversas.filter(c => c.student_name.toLowerCase().includes(t)) : conversas;
   }, [conversas, busca]);
   const aguardando = conversas.filter(c => c.id && c.last_message_author_is_student).length;
-  const comConversa = filtradas.filter(c => c.id), aIniciar = filtradas.filter(c => !c.id);
+  const comConversa = filtradas.filter(c => c.id);
+  // O servidor só lista como "a iniciar" os alunos do PRÓPRIO mentor. Para quem vê a carteira de outro
+  // (o admin em "ver como") a lista completa sai da carteira: todo mentorando aparece, com ou sem conversa.
+  const aIniciar = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    const comThread = new Set(conversas.filter(c => c.id).map(c => c.student_id));
+    const mapa = new Map<string, { student_id: string; student_name: string }>();
+    for (const c of conversas) if (!c.id) mapa.set(c.student_id, c);
+    for (const x of mentorandos) if (!comThread.has(x.id)) mapa.set(x.id, { student_id: x.id, student_name: x.nome });
+    return [...mapa.values()].filter(c => !t || c.student_name.toLowerCase().includes(t)).sort((a, b) => a.student_name.localeCompare(b.student_name, 'pt-BR'));
+  }, [conversas, mentorandos, busca]);
   const m = ativa ? mentorandos.find(x => x.id === ativa.student_id) : undefined;
 
   return (
@@ -43,7 +53,7 @@ export default function ConversasPage() {
               {comConversa.map(c => <ItemDaCaixa key={c.id} c={c} on={c.id === threadId} />)}
               {aIniciar.length > 0 && <><div className="grp-h" style={{ padding: '10px 14px 4px' }}><span className="t-label">Sem conversa ainda</span><span className="t-small-strong muted">{aIniciar.length}</span></div>
                 {aIniciar.map(c => <Link key={c.student_id} className="ib" to={`/mentorandos/${c.student_id}`}><Avatar nome={c.student_name} id={c.student_id} size={34} /><span className="row-t"><span className="t-strong trunc">{c.student_name}</span><span className="t-small muted">abrir pelo perfil</span></span></Link>)}</>}
-              {!filtradas.length && <p className="empty-row t-small muted">Nenhuma conversa encontrada.</p>}
+              {!comConversa.length && !aIniciar.length && <p className="empty-row t-small muted">Nenhuma conversa encontrada.</p>}
             </div>
           </aside>
           {ativa ? <Conversa c={ativa} key={ativa.id} injetar={injetar} /> : (

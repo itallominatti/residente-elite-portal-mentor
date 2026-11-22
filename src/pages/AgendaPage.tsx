@@ -18,11 +18,11 @@ import { dataHora } from '@/lib/format';
 const podeConvidar = (x: Pendencia) => x.kind === 'contato' && !!x.student_id && !!x.due_at && !x.done_at && !x.meet_url && new Date(x.due_at).getTime() > Date.now();
 
 export default function AgendaPage() {
-  const { somenteLeitura } = useEscopo();
+  const { somenteLeitura, verComo } = useEscopo();
   const qc = useQueryClient();
   const [novo, setNovo] = useState(false);
   const [mostrarFeitas, setMostrarFeitas] = useState(false);
-  const q = useQuery({ queryKey: ['pendencias'], queryFn: () => listarPendencias(), refetchInterval: 120_000 });
+  const q = useQuery({ queryKey: ['pendencias', verComo?.mentorId ?? 'eu'], queryFn: () => listarPendencias({ mentorId: verComo?.mentorId }), refetchInterval: 120_000 });
   const google = useQuery({ queryKey: ['google'], queryFn: getGoogle, retry: false, staleTime: 60_000 });
   const atualizar = () => qc.invalidateQueries({ queryKey: ['pendencias'] });
   const marcar = useMutation({ mutationFn: (v: { id: string; feita: boolean }) => marcarPendencia(v.id, v.feita), onSuccess: atualizar });
@@ -30,7 +30,8 @@ export default function AgendaPage() {
   const convidar = useMutation({ mutationFn: (id: string) => enviarConviteMeet(id), onSuccess: atualizar });
   const cancelar = useMutation({ mutationFn: (id: string) => cancelarConviteMeet(id), onSuccess: atualizar });
   const agenda = useMemo(() => montarAgenda(q.data ?? []), [q.data]);
-  const conectado = google.data?.enabled === true && google.data.connected;
+  // A conta Google é de quem a conectou: em "ver como" nem aparece, e nada de convite.
+  const conectado = !verComo && google.data?.enabled === true && google.data.connected;
 
   const linha = (x: Pendencia) => (
     <div key={x.id} className={`pend${x.done_at ? ' feita' : ''}`}>
@@ -60,8 +61,8 @@ export default function AgendaPage() {
 
   return (
     <Shell title="Agenda" sub={q.data ? `${agenda.abertas} em aberto` : undefined}>
-      <PageHead title="Agenda e pendências" sub="Os combinados dos seus contatos e o que você precisa fazer. Só você vê esta lista." right={<Btn icon={Plus} onClick={() => setNovo(true)} locked={somenteLeitura}>Nova pendência</Btn>} />
-      <CartaoDoGoogle status={google.data} carregando={google.isLoading} somenteLeitura={somenteLeitura} />
+      <PageHead title={verComo ? `Agenda de ${verComo.mentorNome}` : 'Agenda e pendências'} sub={verComo ? 'Somente leitura. Esta consulta fica registrada na auditoria do “ver como”.' : 'Os combinados dos seus contatos e o que você precisa fazer. Só você vê esta lista.'} right={<Btn icon={Plus} onClick={() => setNovo(true)} locked={somenteLeitura}>Nova pendência</Btn>} />
+      {!verComo && <CartaoDoGoogle status={google.data} carregando={google.isLoading} somenteLeitura={somenteLeitura} />}
       {q.isLoading ? <Loading /> : q.error ? <ErrorBox error={q.error} onRetry={() => q.refetch()} /> : (
         <>
           {!agenda.grupos.length && <Card><Empty icon={CalendarClock} title="Nada na agenda">Os próximos passos e os contatos que você agendar ao registrar um contato aparecem aqui.</Empty></Card>}

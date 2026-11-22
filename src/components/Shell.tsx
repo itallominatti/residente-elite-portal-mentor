@@ -38,8 +38,8 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
   const temCarteira = mentorId !== undefined;
   const { contagem } = useCarteira();
   const viewas = !!verComo;
-  // A agenda é de quem a escreve: em "ver como" ela seria a do administrador, então nem aparece.
-  const agenda = useQuery({ queryKey: ['pendencias'], queryFn: () => listarPendencias(), enabled: FEATURES.acompanhamento && temCarteira && !viewas, refetchInterval: 120_000 });
+  // Em "ver como" é a agenda do mentor visto (só leitura, e o servidor a registra na trilha).
+  const agenda = useQuery({ queryKey: ['pendencias', verComo?.mentorId ?? 'eu'], queryFn: () => listarPendencias({ mentorId: verComo?.mentorId }), enabled: FEATURES.acompanhamento && temCarteira, refetchInterval: 120_000 });
   const naAgenda = agenda.data ? pedemAtencao(agenda.data) : 0;
   const souMentorTambem = isAdmin && !!arvore?.mentors.some(m => m.id === user?.id && m.is_mentor);
 
@@ -50,7 +50,7 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
       { label: 'Radar', to: '/radar', icon: Radar, badge: contagem.alerta + contagem.atencao || undefined },
     ]],
     ['Comunicação', [{ label: 'Conversas', to: '/conversas', icon: MessageSquare, badge: contagem.esperando || undefined, bad: true }, ...(FEATURES.elitinhoDoMentor && !viewas ? [{ label: 'Elitinho', to: '/elitinho', icon: Sparkles, ai: true }] : [])]],
-    ...(FEATURES.acompanhamento && !viewas ? [['Meu dia', [{ label: 'Agenda', to: '/agenda', icon: CalendarClock, badge: naAgenda || undefined }]] as [string, Item[]]] : []),
+    ...(FEATURES.acompanhamento ? [[viewas ? 'Agenda do mentor' : 'Meu dia', [{ label: 'Agenda', to: '/agenda', icon: CalendarClock, badge: naAgenda || undefined }]] as [string, Item[]]] : []),
   ] : [
     [null, [{ label: 'Mentores', to: '/admin/mentores', icon: UsersRound }, ...(FEATURES.acompanhamento ? [{ label: 'Auditoria', to: '/admin/auditoria', icon: ScrollText }] : [])]],
   ];

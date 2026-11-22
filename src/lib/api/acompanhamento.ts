@@ -39,6 +39,15 @@ export interface EstudoDoAluno {
 }
 export const getEstudo = (alunoId: string) => request<EstudoDoAluno>(`/mentoring/students/${alunoId}/estudo/`);
 
+/** Uma questão que o aluno respondeu: o enunciado vem resumido e sem gabarito, alternativas nem comentário. */
+export interface RespostaDoAluno {
+  id: string; respondida_em: string; acertou: boolean | null; tentativa_id: string; simulado: string; modo: string | null; tentativa_finalizada: boolean;
+  questao_id: string; enunciado: string; area: string | null; tema: string | null; subtema: string | null;
+}
+export interface PaginaDeRespostas { total: number; pagina: number; por_pagina: number; total_de_paginas: number; results: RespostaDoAluno[] }
+export const getRespostas = (alunoId: string, o: { pagina?: number; acerto?: boolean; tentativaId?: string } = {}) =>
+  request<PaginaDeRespostas>(`/mentoring/students/${alunoId}/respostas/${qs({ page: o.pagina, acerto: o.acerto, tentativa_id: o.tentativaId })}`);
+
 // ---------- contatos ----------
 export type Canal = 'mensagem' | 'ligacao' | 'video' | 'presencial';
 export type Humor = 'desanimado' | 'neutro' | 'aliviado' | 'motivado';
@@ -83,9 +92,10 @@ export interface Pendencia {
   /** Link do Meet, quando o convite foi enviado ao aluno. */
   meet_url: string | null;
 }
-export interface FiltroDePendencias { feitas?: boolean; de?: string; ate?: string; alunoId?: string }
+/** `mentorId`: só admin, dentro de um "ver como" sobre esse mentor; o servidor recusa fora disso. */
+export interface FiltroDePendencias { feitas?: boolean; de?: string; ate?: string; alunoId?: string; mentorId?: string }
 export const listarPendencias = (f: FiltroDePendencias = {}) =>
-  request<{ results: Pendencia[] }>(`/mentoring/pendencias/${qs({ feitas: f.feitas, de: f.de, ate: f.ate, aluno_id: f.alunoId })}`).then(r => r.results);
+  request<{ results: Pendencia[] }>(`/mentoring/pendencias/${qs({ feitas: f.feitas, de: f.de, ate: f.ate, aluno_id: f.alunoId, mentor_id: f.mentorId })}`).then(r => r.results);
 export interface NovaPendencia {
   titulo: string; tipo?: 'tarefa' | 'contato'; aluno_id?: string | null; para_quando?: string | null; canal?: Canal | null;
   convite_meet?: boolean; duracao_min?: number;

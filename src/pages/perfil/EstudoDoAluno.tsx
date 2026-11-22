@@ -1,13 +1,16 @@
 /* O que o aluno estudou na plataforma (simulados, caderno de erros, flashcards e foco), lido do servidor. */
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BookX, Layers, Timer, Trophy } from 'lucide-react';
-import { Bar, Callout, Card, ErrorBox, Kv, Loading } from '@/components/ui';
+import { Bar, Btn, Callout, Card, ErrorBox, Kv, Loading } from '@/components/ui';
 import { FonteDosNumeros } from '@/pages/perfil/partes';
+import RespostasDoAluno, { type SimuladoEmFoco } from '@/pages/perfil/RespostasDoAluno';
 import { getEstudo } from '@/lib/api/acompanhamento';
 import { dataCurta, haQuanto } from '@/lib/format';
 
 export default function EstudoDoAluno({ alunoId }: { alunoId: string }) {
   const q = useQuery({ queryKey: ['estudo', alunoId], queryFn: () => getEstudo(alunoId), staleTime: 60_000 });
+  const [simulado, setSimulado] = useState<SimuladoEmFoco | null>(null);
   if (q.isLoading) return <Card title="Estudo na plataforma"><Loading /></Card>;
   if (q.error) return <ErrorBox error={q.error} onRetry={() => q.refetch()} />;
   const e = q.data;
@@ -21,8 +24,8 @@ export default function EstudoDoAluno({ alunoId }: { alunoId: string }) {
           <Card title="Simulados na plataforma" sub={`${s.total_finalizados} finalizado${s.total_finalizados === 1 ? '' : 's'}`} icon={Trophy}>
             {s.finalizados.length ? (
               <div className="tbl-wrap"><table className="tbl" aria-label="Simulados finalizados">
-                <thead><tr><th>Simulado</th><th className="r">Nota</th><th className="r">Acertos</th><th className="r">Quando</th></tr></thead>
-                <tbody>{s.finalizados.map(x => <tr key={x.id}><td className="t-strong">{x.titulo}</td><td className="r num">{x.nota === null ? '—' : `${Math.round(x.nota)}%`}</td><td className="r num">{x.acertos} / {x.acertos + x.erros}</td><td className="r t-small muted">{dataCurta(x.finalizado_em)}</td></tr>)}</tbody>
+                <thead><tr><th>Simulado</th><th className="r">Nota</th><th className="r">Acertos</th><th className="r">Quando</th><th /></tr></thead>
+                <tbody>{s.finalizados.map(x => <tr key={x.id}><td className="t-strong">{x.titulo}</td><td className="r num">{x.nota === null ? '—' : `${Math.round(x.nota)}%`}</td><td className="r num">{x.acertos} / {x.acertos + x.erros}</td><td className="r t-small muted">{dataCurta(x.finalizado_em)}</td><td className="r"><Btn kind="g" sm onClick={() => setSimulado({ id: x.id, titulo: x.titulo })}>Ver questões</Btn></td></tr>)}</tbody>
               </table></div>
             ) : <p className="t-small muted">Nenhum simulado finalizado na plataforma.</p>}
             {s.parados.length > 0 && <Callout icon={Timer} tone="amber"><p className="t-small-strong">Simulado parado</p>{s.parados.map(p => <p key={p.id} className="t-small">{p.titulo}: começou {haQuanto(p.comecou_em)} e não terminou.</p>)}</Callout>}
@@ -56,6 +59,7 @@ export default function EstudoDoAluno({ alunoId }: { alunoId: string }) {
           </Card>
         </div>
       </div>
+      <RespostasDoAluno alunoId={alunoId} simulado={simulado} limparSimulado={() => setSimulado(null)} />
     </>
   );
 }

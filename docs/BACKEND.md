@@ -50,6 +50,8 @@ Tudo abaixo está na branch `feat/api-do-portal-do-mentor` do `elite-med-back-en
 
 **3. Estudo do aluno (feito).** `GET /mentoring/students/<id>/estudo/`: simulados feitos na plataforma (finalizados e parados), desempenho por área e tema (a mesma consulta da tela do aluno), caderno de erros **só por contagem** (motivo e área; a anotação e o enunciado ficam de fora), flashcards e rotinas de foco. O servidor não registra sessões de foco, só as rotinas: horas de foco não existem. Regra: quem atende o aluno ou admin; fora disso, 403 "Você não atende este aluno.".
 
+`GET /mentoring/students/<id>/respostas/` lista as **questões que o aluno respondeu** (30 por página, da mais recente): enunciado resumido (sem HTML, até 240 caracteres), área, tema, simulado, se acertou e se a tentativa terminou. Filtros `acerto=true|false` e `tentativa_id` (o botão "Ver questões" de cada simulado). **Nunca** traz gabarito, alternativas nem comentário. Mesma regra de acesso do estudo.
+
 **4. Carteira com indicadores (feito).** `GET /mentoring/carteira/` (paginada, `busca`, e `mentor_id` só para admin): acerto das duas janelas de 14 dias com a variação, esforço da semana contra a meta, revisões atrasadas e de hoje, dias sem questão, motivos do radar e simulado parado. Mesmas regras e mesma leitura em lote do radar, sem IA.
 
 **5. Contatos, anotações privadas, agenda e plano (feito).** Quatro tabelas novas e as rotas `mentoring/students/<id>/{contatos,notas,plano}/`, `mentoring/{contatos,notas,plano}/<id>/` e `mentoring/pendencias/`. Quem pode o quê, decidido no servidor:
@@ -59,7 +61,7 @@ Tudo abaixo está na branch `feat/api-do-portal-do-mentor` do `elite-med-back-en
 | Contato com o aluno | quem atende o aluno e o admin | quem atende; só o autor altera ou apaga |
 | Plano do aluno | quem atende o aluno e o admin | quem atende; só o autor apaga |
 | Anotação privada | **só o autor** (nem o admin: 403 explícito) | só o autor |
-| Pendência e agenda | só o dono | só o dono |
+| Pendência e agenda | o dono; o admin só **lê**, e só dentro de uma sessão de "ver como" aberta sobre aquele mentor (`GET /mentoring/pendencias/?mentor_id=`, que entra na trilha) | só o dono |
 
 Registrar um contato cria os próximos passos e o próximo contato (pendências) na mesma transação. Id de outra pessoa responde "não encontrado". **Decisões de privacidade que ficaram em aberto para o dono:** prazo de guarda das anotações e dos contatos, e o procedimento para atender direito do titular (o admin não abre anotação pela API; abrir é um procedimento fora dela).
 

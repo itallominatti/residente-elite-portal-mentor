@@ -104,6 +104,28 @@ function estudo(ctx: ContextoDoMock, id: string) {
   };
 }
 
+const ENUNCIADOS: [string, string, string][] = [
+  ['Lactente de 8 meses com febre, coriza e sibilância há 3 dias; qual a conduta inicial mais adequada?', 'Pediatria', 'Bronquiolite'],
+  ['Mulher de 24 anos, 34 semanas, com cefaleia, escotomas e PA de 160x110 mmHg. Qual o diagnóstico?', 'Ginecologia e Obstetrícia', 'Pré-eclâmpsia'],
+  ['Homem de 62 anos com dor torácica em aperto, ECG com supradesnivelamento de ST em parede anterior.', 'Clínica Médica', 'Infarto agudo do miocárdio'],
+  ['Paciente politraumatizado, hipotenso e taquicárdico após queda de moto. Qual a primeira conduta?', 'Cirurgia', 'Trauma'],
+  ['Adolescente com dor em fossa ilíaca direita, febre e leucocitose. Qual o exame de escolha?', 'Cirurgia', 'Apendicite'],
+  ['Idosa com febre, tosse produtiva e confusão mental. Escore CURB-65 de 3. Qual a conduta?', 'Clínica Médica', 'Pneumonia'],
+];
+
+function respostasDe(ctx: ContextoDoMock, id: string) {
+  const simulados: [string, string][] = [['e1', 'Simulado Nacional 07'], ['e2', 'USP 2024'], ['e3', 'SES-PE 2025']];
+  const h = hash(id);
+  return Array.from({ length: 64 }, (_, n) => {
+    const [enunciado, area, tema] = ENUNCIADOS[(n + h) % ENUNCIADOS.length]!;
+    const [tentativa_id, simulado] = simulados[n % 3]!;
+    return {
+      id: `r-${id}-${n}`, respondida_em: iso(ctx, 6 + n * 7), acertou: (n * 7 + h) % 10 < 6, tentativa_id, simulado, modo: 'exam', tentativa_finalizada: true,
+      questao_id: `q-${n}`, enunciado, area, tema, subtema: null as string | null,
+    };
+  });
+}
+
 export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: string, url: URL, init: RequestInit): Response | null {
   semear(ctx);
   const { json, quem } = ctx;
@@ -135,12 +157,18 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
     return json({ gerado_em: new Date(ctx.agora).toISOString(), total_no_escopo: lista.length, total_em_risco: 0, total_da_busca: lista.length, pagina: 1, por_pagina: 200, total_de_paginas: 1, results });
   }
 
-  const doAluno = p.match(/^\/mentoring\/students\/([^/]+)\/(estudo|contatos|notas|plano)\/$/);
+  const doAluno = p.match(/^\/mentoring\/students\/([^/]+)\/(estudo|respostas|contatos|notas|plano)\/$/);
   if (doAluno) {
     const [, id, recurso] = doAluno as unknown as [string, string, string];
     if (!ctx.atende(id)) return naoAtende();
     const meu = ctx.escopo().some(a => a[0] === id);
     if (recurso === 'estudo') return json(estudo(ctx, id));
+    if (recurso === 'respostas') {
+      const todas = respostasDe(ctx, id);
+      const acerto = url.searchParams.get('acerto'), tentativa = url.searchParams.get('tentativa_id'), pagina = Math.max(1, Number(url.searchParams.get('page') ?? 1));
+      const lista = todas.filter(r => (acerto === null || r.acertou === (acerto === 'true')) && (!tentativa || r.tentativa_id === tentativa));
+      return json({ total: lista.length, pagina, por_pagina: 30, total_de_paginas: Math.max(1, Math.ceil(lista.length / 30)), results: lista.slice((pagina - 1) * 30, pagina * 30) });
+    }
     if (recurso === 'contatos') {
       if (metodo === 'POST') {
         if (!meu) return naoAtende();
@@ -222,7 +250,11 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
       return json(t, 201);
     }
     const feitas = url.searchParams.get('feitas'), aluno = url.searchParams.get('aluno_id');
-    const lista = pendencias.filter(t => t.owner_id === quem.user && (feitas === null || (feitas === 'true') === !!t.done_at) && (!aluno || t.student_id === aluno));
+    // O admin lê a agenda do mentor visto, e só dentro de uma sessão válida sobre ele; sem ela, a agenda é só do dono.
+    const alvo = url.searchParams.get('mentor_id');
+    if (alvo && alvo !== quem.user && !(admin && sessao && sessao.mentor_id === alvo)) return json({ error: 'A agenda é de quem a escreveu. O administrador só a vê dentro de uma sessão de "ver como".' }, 403);
+    const dono = alvo ?? quem.user;
+    const lista = pendencias.filter(t => t.owner_id === dono && (feitas === null || (feitas === 'true') === !!t.done_at) && (!aluno || t.student_id === aluno));
     return json({ results: lista.sort((a, b) => (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999')) });
   }
   const pend = p.match(/^\/mentoring\/pendencias\/([^/]+)\/$/);
