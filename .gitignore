@@ -15,5 +15,6 @@ iac/**/*.tfplan
 iac/**/terraform.tfvars
 iac/**/backend.hcl
 
-# Configuração local do app de desktop
-.claude/
+# Configuração local do app de desktop (os subagentes do projeto são versionados)
+.claude/*
+!.claude/agents/
