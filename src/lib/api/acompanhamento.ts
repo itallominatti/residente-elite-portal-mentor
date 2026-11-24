@@ -48,6 +48,19 @@ export interface PaginaDeRespostas { total: number; pagina: number; por_pagina: 
 export const getRespostas = (alunoId: string, o: { pagina?: number; acerto?: boolean; tentativaId?: string } = {}) =>
   request<PaginaDeRespostas>(`/mentoring/students/${alunoId}/respostas/${qs({ page: o.pagina, acerto: o.acerto, tentativa_id: o.tentativaId })}`);
 
+/** A prova de um aluno na ordem do simulado (a mesma leitura do modal de respostas do admin-hub). */
+export type ResultadoDaQuestao = 'acertou' | 'errou' | 'em_branco';
+export interface AlternativaDaProva { id: string; texto: string; marcada: boolean; correta: boolean; explicacao: string | null }
+export interface QuestaoDaProva {
+  numero: number; question_id: string; enunciado: string; categoria: string | null; tema: string | null; subtema: string | null;
+  resultado: ResultadoDaQuestao; anulada: boolean; alternativas: AlternativaDaProva[]; comentario: string | null;
+}
+export interface ProvaDoAluno {
+  tentativa: { id: string; simulado: string; modo: string | null; comecou_em: string; finalizada_em: string | null; nota: number | null; acertos: number; erros: number; em_branco: number; total_de_questoes: number };
+  questoes: QuestaoDaProva[];
+}
+export const getProva = (alunoId: string, tentativaId: string) => request<ProvaDoAluno>(`/mentoring/students/${alunoId}/provas/${tentativaId}/`);
+
 // ---------- contatos ----------
 export type Canal = 'mensagem' | 'ligacao' | 'video' | 'presencial';
 export type Humor = 'desanimado' | 'neutro' | 'aliviado' | 'motivado';

@@ -146,6 +146,32 @@ function respostasDe(ctx: ContextoDoMock, id: string) {
   });
 }
 
+function provaMock(ctx: ContextoDoMock, aluno: string, tentativa: string) {
+  const h = hash(aluno + tentativa);
+  const titulo = { e1: 'Simulado Nacional 07', e2: 'USP 2024', e3: 'SES-PE 2025', e4: 'Simulado Nacional 08' }[tentativa] ?? 'Simulado';
+  const questoes = Array.from({ length: 12 }, (_, n) => {
+    const [enunciado, categoria, tema] = ENUNCIADOS[(n + h) % ENUNCIADOS.length]!;
+    const certa = (n + h) % 4, marcada = n % 7 === 5 ? null : (n * 3 + h) % 4;
+    const resultado = marcada === null ? 'em_branco' : marcada === certa ? 'acertou' : 'errou';
+    return {
+      numero: n + 1, question_id: `pq-${tentativa}-${n}`,
+      enunciado: n === 2
+        ? `<p>${enunciado}</p><p>Observe o exame abaixo:</p><table><tr><th>Exame</th><th>Resultado</th></tr><tr><td>Leucócitos</td><td>18.500/mm³</td></tr><tr><td>PCR</td><td>12 mg/dL</td></tr></table><script>alert('nao deve aparecer')</script>`
+        : `<p>${enunciado}</p>`,
+      categoria, tema, subtema: null, resultado, anulada: n === 9,
+      alternativas: ['Observar em domicílio e orientar sinais de alarme.', 'Solicitar tomografia imediatamente.', 'Iniciar antibioticoterapia e internar.', 'Encaminhar ao ambulatório em 30 dias.'].map((texto, i) => ({
+        id: `pa-${tentativa}-${n}-${i}`, texto: `<p>${texto}</p>`, marcada: marcada === i, correta: certa === i, explicacao: certa === i ? '<p>É a conduta com melhor custo-benefício neste cenário.</p>' : null,
+      })),
+      comentario: n % 3 === 0 ? '<p><strong>Comentário:</strong> o diagnóstico se firma pelo quadro clínico; exames de imagem não mudam a conduta inicial.</p>' : null,
+    };
+  });
+  const c = (r: string) => questoes.filter(q => q.resultado === r).length;
+  return {
+    tentativa: { id: tentativa, simulado: titulo, modo: 'exam', comecou_em: iso(ctx, 24 * 11 + 3), finalizada_em: tentativa === 'e4' ? null : iso(ctx, 24 * 11), nota: tentativa === 'e4' ? null : Math.round((c('acertou') / questoes.length) * 1000) / 10, acertos: c('acertou'), erros: c('errou'), em_branco: c('em_branco'), total_de_questoes: questoes.length },
+    questoes,
+  };
+}
+
 export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: string, url: URL, init: RequestInit): Response | null {
   semear(ctx);
   const { json, quem } = ctx;
@@ -175,6 +201,13 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
     const lista = alvo ? ctx.alunos.filter(a => a[2] === alvo) : ctx.escopo();
     const results = lista.map(a => ({ id: a[0], nome: a[1], email: `${a[0].slice(2)}@exemplo.com`, indicadores: indicadores(a[0]), motivos: (RADAR_DO_MOCK[a[0]] ?? []).map(([codigo, texto]) => ({ codigo, texto })), simulado_parado: null }));
     return json({ gerado_em: new Date(ctx.agora).toISOString(), total_no_escopo: lista.length, total_em_risco: 0, total_da_busca: lista.length, pagina: 1, por_pagina: 200, total_de_paginas: 1, results });
+  }
+
+  const prova = p.match(/^\/mentoring\/students\/([^/]+)\/provas\/([^/]+)\/$/);
+  if (prova) {
+    if (!ctx.atende(prova[1]!)) return naoAtende();
+    if (!['e1', 'e2', 'e3', 'e4'].includes(prova[2]!)) return json({ error: 'Prova não encontrada.' }, 404);
+    return json(provaMock(ctx, prova[1]!, prova[2]!));
   }
 
   const doAluno = p.match(/^\/mentoring\/students\/([^/]+)\/(estudo|respostas|contatos|notas|plano)\/$/);

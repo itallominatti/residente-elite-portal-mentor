@@ -4,13 +4,15 @@ import { useQuery } from '@tanstack/react-query';
 import { BookX, Layers, Timer, Trophy } from 'lucide-react';
 import { Bar, Btn, Callout, Card, ErrorBox, Kv, Loading } from '@/components/ui';
 import { FonteDosNumeros } from '@/pages/perfil/partes';
-import RespostasDoAluno, { type SimuladoEmFoco } from '@/pages/perfil/RespostasDoAluno';
+import ProvaDoAluno from '@/pages/perfil/ProvaDoAluno';
+import RespostasDoAluno from '@/pages/perfil/RespostasDoAluno';
 import { getEstudo } from '@/lib/api/acompanhamento';
 import { dataCurta, haQuanto } from '@/lib/format';
 
 export default function EstudoDoAluno({ alunoId }: { alunoId: string }) {
   const q = useQuery({ queryKey: ['estudo', alunoId], queryFn: () => getEstudo(alunoId), staleTime: 60_000 });
-  const [simulado, setSimulado] = useState<SimuladoEmFoco | null>(null);
+  const [prova, setProva] = useState<string | null>(null);
+  const abrirProva = (id: string) => { setProva(id); setTimeout(() => document.getElementById('prova-do-aluno')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50); };
   if (q.isLoading) return <Card title="Estudo na plataforma"><Loading /></Card>;
   if (q.error) return <ErrorBox error={q.error} onRetry={() => q.refetch()} />;
   const e = q.data;
@@ -19,16 +21,17 @@ export default function EstudoDoAluno({ alunoId }: { alunoId: string }) {
   const maxMotivo = Math.max(1, ...c.por_motivo.map(x => x.total));
   return (
     <>
+      {prova && <div id="prova-do-aluno"><ProvaDoAluno alunoId={alunoId} tentativaId={prova} fechar={() => setProva(null)} /></div>}
       <div className="cols">
         <div className="stack">
           <Card title="Simulados na plataforma" sub={`${s.total_finalizados} finalizado${s.total_finalizados === 1 ? '' : 's'}`} icon={Trophy}>
             {s.finalizados.length ? (
               <div className="tbl-wrap"><table className="tbl" aria-label="Simulados finalizados">
                 <thead><tr><th>Simulado</th><th className="r">Nota</th><th className="r">Acertos</th><th className="r">Quando</th><th /></tr></thead>
-                <tbody>{s.finalizados.map(x => <tr key={x.id}><td className="t-strong">{x.titulo}</td><td className="r num">{x.nota === null ? '—' : `${Math.round(x.nota)}%`}</td><td className="r num">{x.acertos} / {x.acertos + x.erros}</td><td className="r t-small muted">{dataCurta(x.finalizado_em)}</td><td className="r"><Btn kind="g" sm onClick={() => setSimulado({ id: x.id, titulo: x.titulo })}>Ver questões</Btn></td></tr>)}</tbody>
+                <tbody>{s.finalizados.map(x => <tr key={x.id}><td className="t-strong">{x.titulo}</td><td className="r num">{x.nota === null ? '—' : `${Math.round(x.nota)}%`}</td><td className="r num">{x.acertos} / {x.acertos + x.erros}</td><td className="r t-small muted">{dataCurta(x.finalizado_em)}</td><td className="r"><Btn kind="g" sm onClick={() => abrirProva(x.id)}>Ver prova</Btn></td></tr>)}</tbody>
               </table></div>
             ) : <p className="t-small muted">Nenhum simulado finalizado na plataforma.</p>}
-            {s.parados.length > 0 && <Callout icon={Timer} tone="amber"><p className="t-small-strong">Simulado parado</p>{s.parados.map(p => <p key={p.id} className="t-small">{p.titulo}: começou {haQuanto(p.comecou_em)} e não terminou.</p>)}</Callout>}
+            {s.parados.length > 0 && <Callout icon={Timer} tone="amber"><p className="t-small-strong">Simulado parado</p>{s.parados.map(p => <p key={p.id} className="t-small">{p.titulo}: começou {haQuanto(p.comecou_em)} e não terminou. <button type="button" className="link-btn" onClick={() => abrirProva(p.id)}>Ver o que respondeu</button></p>)}</Callout>}
             <FonteDosNumeros>Só simulados feitos na plataforma (modo prova). Simulados registrados à mão ficam em “Desempenho”.</FonteDosNumeros>
           </Card>
           <Card title="Caderno de erros" sub={`${c.total} no total · ${c.ultimos_30_dias} nos últimos 30 dias`} icon={BookX}>
@@ -59,7 +62,7 @@ export default function EstudoDoAluno({ alunoId }: { alunoId: string }) {
           </Card>
         </div>
       </div>
-      <RespostasDoAluno alunoId={alunoId} simulado={simulado} limparSimulado={() => setSimulado(null)} />
+      <RespostasDoAluno alunoId={alunoId} abrirProva={abrirProva} />
     </>
   );
 }
