@@ -91,6 +91,10 @@ export interface Pendencia {
   title: string; due_at: string | null; done_at: string | null; source_contact_id: string | null; created_at: string;
   /** Link do Meet, quando o convite foi enviado ao aluno. */
   meet_url: string | null;
+  /** Duração do encontro, para o tamanho do bloco no calendário. */
+  meet_duration_min: number;
+  /** Cor escolhida no calendário (`CORES`); `null` = a padrão do tipo. */
+  color: string | null;
 }
 /** `mentorId`: só admin, dentro de um "ver como" sobre esse mentor; o servidor recusa fora disso. */
 export interface FiltroDePendencias { feitas?: boolean; de?: string; ate?: string; alunoId?: string; mentorId?: string }
@@ -98,11 +102,28 @@ export const listarPendencias = (f: FiltroDePendencias = {}) =>
   request<{ results: Pendencia[] }>(`/mentoring/pendencias/${qs({ feitas: f.feitas, de: f.de, ate: f.ate, aluno_id: f.alunoId, mentor_id: f.mentorId })}`).then(r => r.results);
 export interface NovaPendencia {
   titulo: string; tipo?: 'tarefa' | 'contato'; aluno_id?: string | null; para_quando?: string | null; canal?: Canal | null;
-  convite_meet?: boolean; duracao_min?: number;
+  convite_meet?: boolean; duracao_min?: number; cor?: string | null;
 }
 export const criarPendencia = (p: NovaPendencia) => request<Pendencia & { convite?: ResultadoDoConvite }>('/mentoring/pendencias/', { method: 'POST', body: JSON.stringify(p) });
 export const marcarPendencia = (id: string, feita: boolean) => request<Pendencia>(`/mentoring/pendencias/${id}/`, { method: 'PATCH', body: JSON.stringify({ feita }) });
+/** Muda a data e hora, a cor ou o título. Com convite do Meet, o servidor avisa o Google antes e, se ele falhar, nada muda. */
+export const atualizarPendencia = (id: string, campos: { para_quando?: string | null; cor?: string | null; titulo?: string; feita?: boolean }) =>
+  request<Pendencia>(`/mentoring/pendencias/${id}/`, { method: 'PATCH', body: JSON.stringify(campos) });
 export const excluirPendencia = (id: string) => request<void>(`/mentoring/pendencias/${id}/`, { method: 'DELETE' });
+
+// ---------- revisões dos alunos (calendário) ----------
+export interface RevisaoDoAluno {
+  id: string; student_id: string; student_name: string; theme_id: string; theme_name: string; category_name: string | null; stage: string;
+  scheduled_date: string; completed: boolean; completed_at: string | null; moved_by_name: string | null; moved_at: string | null;
+}
+export interface FiltroDeRevisoes { de: string; ate: string; alunoId?: string; mentorId?: string; concluidas?: boolean }
+/** As revisões agendadas da carteira no período (até 100 dias). `mentorId`: só admin; em "ver como" o servidor já usa o mentor visto. */
+export const listarRevisoes = (f: FiltroDeRevisoes) =>
+  request<{ results: RevisaoDoAluno[] }>(`/mentoring/revisoes/${qs({ de: f.de, ate: f.ate, aluno_id: f.alunoId, mentor_id: f.mentorId, concluidas: f.concluidas })}`).then(r => r.results);
+export interface RevisaoRemarcada extends RevisaoDoAluno { no_mesmo_dia: number }
+/** Remarca para o dia e a hora exatos. O servidor guarda quem mexeu e avisa quantas outras revisões do aluno caem no dia. */
+export const remarcarRevisao = (id: string, paraQuando: string) =>
+  request<RevisaoRemarcada>(`/mentoring/revisoes/${id}/`, { method: 'PATCH', body: JSON.stringify({ para_quando: paraQuando }) });
 
 // ---------- conta Google e convite do Meet ----------
 export interface StatusDoGoogle { enabled: boolean; connected: boolean; google_email: string | null }

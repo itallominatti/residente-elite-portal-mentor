@@ -71,6 +71,13 @@ Registrar um contato cria os próximos passos e o próximo contato (pendências)
 
 **7b. Convite do Google Meet (feito, DESLIGADO até configurar).** Cada mentor conecta a própria conta Google e pode enviar convite do Meet ao agendar um contato; o evento nasce na agenda dele e o Google avisa o aluno. Migração 0153 (só tabela e colunas novas). Tudo o que é preciso configurar (Google Cloud, variáveis do serviço, decisão de privacidade) está em `docs/GOOGLE-MEET.md`.
 
+**7c. Calendário de revisões e cor das pendências (feito).** Migração 0154 (uma coluna e uma tabela de trilha).
+
+- `GET /mentoring/revisoes/?de=&ate=` lista as revisões agendadas dos alunos da carteira no período (até 100 dias; `aluno_id`, `concluidas=true`, e `mentor_id` só para admin). Mentor lê os seus alunos, submentor os do pai, admin todos. Em "ver como" vale só a carteira do mentor visto, mesmo sem o parâmetro.
+- `PATCH /mentoring/revisoes/<id>/` `{para_quando}` remarca para o dia **e a hora** exatos. Quem pode: quem atende o aluno ou o admin (o admin já podia reagendar pela rota do aluno). Em "ver como" o servidor recusa. Regras: só revisão pendente; data futura e até 365 dias à frente; **sem** o teto de 30 dias nem o ajuste de "quatro por dia" que valem para o aluno (quem remarca decidiu; o servidor só devolve `no_mesmo_dia`, quantas outras revisões do aluno caem nesse dia, e a tela avisa). Não conta como adiamento do aluno (`rescheduled_count` não muda), reabre o lembrete (`reminder_sent_at` volta a nulo) e grava a trilha em `mentor_revision_moves` (quem, de, para, quando).
+- A pendência ganha `color` (`azul`, `verde`, `amarelo`, `laranja`, `vermelho`, `roxo`, `rosa`, `cinza`; vazio = padrão do tipo) em `POST` e `PATCH`.
+- No portal: a Agenda tem o calendário por horário (dia e semana, hora de São Paulo, encaixe de 15 min), com pendências, contatos e revisões; clicar num horário cria, arrastar remarca, clicar num item abre o detalhe (pintar, concluir, apagar, Meet). A revisão arrastada pede confirmação e avisa se o dia do aluno fica cheio. O admin tem a página "Revisões" (`/admin/revisoes`) com filtro por mentor. Arrastar não funciona no toque (briga com a rolagem): pelo detalhe dá para remarcar digitando.
+
 **8. Agregados para o admin (não feito).** Tempo médio de resposta por mentor. Hoje o portal calcula só "aguardando resposta" e "em risco" por mentor, no navegador.
 
 ## Ordem para publicar

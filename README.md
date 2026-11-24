@@ -30,6 +30,7 @@ npm run lint && npm run typecheck && npm test && npm run build
   - **Plano e metas:** a meta semanal, editável.
   - Os números são "na revisão" (revisão espaçada, revisões isoladas e simulados registrados); o que o aluno responde só no banco de questões não passa por essas rotas, e as telas dizem isso. Acerto, temas e revisões atrasadas aparecem para admin e, para o mentor, quando `VITE_FEATURE_METRICAS_DO_MENTOR` estiver ligada.
   - Com `VITE_FEATURE_ACOMPANHAMENTO` ligada (back-end com as migrações 0151 e 0152): carteira com acerto, meta e revisões por aluno; blocos de simulados, caderno de erros (só contagem), flashcards e foco; aba "Contatos e notas" (contatos, pauta para o próximo contato e anotações privadas); plano com objetivos; agenda de pendências; "ver como" com sessão no servidor e a página "Auditoria" do admin. `npm run dev:mock` já vem com tudo ligado.
+  - Agenda em calendário por horário (dia e semana): arrastar para remarcar pendências e as revisões dos alunos, pintar cada item, e página "Revisões" para o admin.
   - Convite do Google Meet ao agendar contato: pronto e desligado até configurar o Google (`docs/GOOGLE-MEET.md`).
   - O Elitinho do mentor (`VITE_FEATURE_ELITINHO_DO_MENTOR`) está pronto e DESLIGADO: depende da decisão de LGPD.
 - **Conversas**: fila por espera, envio, leitura, rascunho do radar no campo (o mentor revisa e envia; nada sai sozinho), contexto do aluno ao lado.

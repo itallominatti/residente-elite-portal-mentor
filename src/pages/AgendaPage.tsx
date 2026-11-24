@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarClock, CalendarPlus, Link2, MessageSquare, Plus, Trash2, Video } from 'lucide-react';
+import { CalendarClock, CalendarDays, CalendarPlus, Link2, List, MessageSquare, Plus, Trash2, Video } from 'lucide-react';
 import { Shell } from '@/components/Shell';
-import { Sheet } from '@/components/Sheet';
+import { NovaPendencia } from '@/components/NovaPendencia';
+import { PainelDoCalendario } from '@/components/PainelDoCalendario';
 import { Btn, Callout, Card, Empty, ErrorBox, Loading, PageHead, Pill } from '@/components/ui';
-import { useCarteira } from '@/hooks/useCarteira';
 import { useEscopo } from '@/contexts/EscopoContext';
 import {
-  cancelarConviteMeet, CANAIS, criarPendencia, desconectarGoogle, DURACOES_DO_MEET, enviarConviteMeet, excluirPendencia, getGoogle,
-  iniciarConexaoGoogle, listarPendencias, marcarPendencia, rotuloDoCanal, type Canal, type Pendencia, type StatusDoGoogle,
+  cancelarConviteMeet, desconectarGoogle, enviarConviteMeet, excluirPendencia, getGoogle, iniciarConexaoGoogle, listarPendencias, marcarPendencia,
+  rotuloDoCanal, type Pendencia, type StatusDoGoogle,
 } from '@/lib/api/acompanhamento';
 import { montarAgenda, ROTULO_DO_GRUPO } from '@/lib/agenda';
 import { dataHora } from '@/lib/format';
@@ -17,21 +17,52 @@ import { dataHora } from '@/lib/format';
 /** O convite do Meet só existe para contato agendado, no futuro, ligado a um aluno e ainda aberto. */
 const podeConvidar = (x: Pendencia) => x.kind === 'contato' && !!x.student_id && !!x.due_at && !x.done_at && !x.meet_url && new Date(x.due_at).getTime() > Date.now();
 
+type Visao = 'calendario' | 'lista';
+const guardado = (): Visao => { try { return localStorage.getItem('agenda_visao') === 'lista' ? 'lista' : 'calendario'; } catch { return 'calendario'; } };
+
 export default function AgendaPage() {
   const { somenteLeitura, verComo } = useEscopo();
-  const qc = useQueryClient();
+  const [visao, setVisao] = useState<Visao>(guardado);
   const [novo, setNovo] = useState(false);
-  const [mostrarFeitas, setMostrarFeitas] = useState(false);
-  const q = useQuery({ queryKey: ['pendencias', verComo?.mentorId ?? 'eu'], queryFn: () => listarPendencias({ mentorId: verComo?.mentorId }), refetchInterval: 120_000 });
   const google = useQuery({ queryKey: ['google'], queryFn: getGoogle, retry: false, staleTime: 60_000 });
+  // A conta Google é de quem a conectou: em "ver como" nem aparece, e nada de convite.
+  const googleDoMentor = verComo ? undefined : google.data;
+  const escolher = (v: Visao) => { setVisao(v); try { localStorage.setItem('agenda_visao', v); } catch { /* sem storage */ } };
+
+  return (
+    <Shell title="Agenda">
+      <PageHead
+        title={verComo ? `Agenda de ${verComo.mentorNome}` : 'Agenda'}
+        sub={verComo ? 'Somente leitura. Esta consulta fica registrada na auditoria do “ver como”.' : 'Seus combinados e as revisões dos alunos, por dia e horário. Só você vê as suas pendências.'}
+        right={<>
+          <div className="cal-seg" role="group" aria-label="Forma de ver a agenda">
+            <button type="button" className={visao === 'calendario' ? 'on' : ''} aria-pressed={visao === 'calendario'} onClick={() => escolher('calendario')}><CalendarDays size={14} aria-hidden style={{ verticalAlign: -2 }} /> Calendário</button>
+            <button type="button" className={visao === 'lista' ? 'on' : ''} aria-pressed={visao === 'lista'} onClick={() => escolher('lista')}><List size={14} aria-hidden style={{ verticalAlign: -2 }} /> Lista</button>
+          </div>
+          <Btn icon={Plus} onClick={() => setNovo(true)} locked={somenteLeitura}>Nova pendência</Btn>
+        </>}
+      />
+      {visao === 'calendario'
+        ? <PainelDoCalendario comPendencias mentorId={verComo?.mentorId} somenteLeitura={somenteLeitura} google={googleDoMentor} />
+        : <ListaDaAgenda somenteLeitura={somenteLeitura} mentorId={verComo?.mentorId} conectado={!verComo && google.data?.enabled === true && google.data.connected} />}
+      {!verComo && <CartaoDoGoogle status={google.data} carregando={google.isLoading} somenteLeitura={somenteLeitura} />}
+      {novo && <NovaPendencia fechar={() => setNovo(false)} google={googleDoMentor} />}
+    </Shell>
+  );
+}
+
+// -- a lista (como era antes do calendário) ------------------------------------------------
+
+function ListaDaAgenda({ somenteLeitura, mentorId, conectado }: { somenteLeitura: boolean; mentorId?: string; conectado: boolean }) {
+  const qc = useQueryClient();
+  const [mostrarFeitas, setMostrarFeitas] = useState(false);
+  const q = useQuery({ queryKey: ['pendencias', mentorId ?? 'eu'], queryFn: () => listarPendencias({ mentorId }), refetchInterval: 120_000 });
   const atualizar = () => qc.invalidateQueries({ queryKey: ['pendencias'] });
   const marcar = useMutation({ mutationFn: (v: { id: string; feita: boolean }) => marcarPendencia(v.id, v.feita), onSuccess: atualizar });
   const apagar = useMutation({ mutationFn: (id: string) => excluirPendencia(id), onSuccess: atualizar });
   const convidar = useMutation({ mutationFn: (id: string) => enviarConviteMeet(id), onSuccess: atualizar });
   const cancelar = useMutation({ mutationFn: (id: string) => cancelarConviteMeet(id), onSuccess: atualizar });
   const agenda = useMemo(() => montarAgenda(q.data ?? []), [q.data]);
-  // A conta Google é de quem a conectou: em "ver como" nem aparece, e nada de convite.
-  const conectado = !verComo && google.data?.enabled === true && google.data.connected;
 
   const linha = (x: Pendencia) => (
     <div key={x.id} className={`pend${x.done_at ? ' feita' : ''}`}>
@@ -59,30 +90,27 @@ export default function AgendaPage() {
     </div>
   );
 
+  if (q.isLoading) return <Loading />;
+  if (q.error) return <ErrorBox error={q.error} onRetry={() => q.refetch()} />;
   return (
-    <Shell title="Agenda" sub={q.data ? `${agenda.abertas} em aberto` : undefined}>
-      <PageHead title={verComo ? `Agenda de ${verComo.mentorNome}` : 'Agenda e pendências'} sub={verComo ? 'Somente leitura. Esta consulta fica registrada na auditoria do “ver como”.' : 'Os combinados dos seus contatos e o que você precisa fazer. Só você vê esta lista.'} right={<Btn icon={Plus} onClick={() => setNovo(true)} locked={somenteLeitura}>Nova pendência</Btn>} />
-      {!verComo && <CartaoDoGoogle status={google.data} carregando={google.isLoading} somenteLeitura={somenteLeitura} />}
-      {q.isLoading ? <Loading /> : q.error ? <ErrorBox error={q.error} onRetry={() => q.refetch()} /> : (
-        <>
-          {!agenda.grupos.length && <Card><Empty icon={CalendarClock} title="Nada na agenda">Os próximos passos e os contatos que você agendar ao registrar um contato aparecem aqui.</Empty></Card>}
-          {agenda.grupos.map(g => (
-            <Card key={g.grupo} title={ROTULO_DO_GRUPO[g.grupo]} sub={`${g.itens.length}`} icon={CalendarClock} iconTone={g.grupo === 'atrasadas' ? 'bad' : g.grupo === 'hoje' ? 'amber' : 'teal'}>
-              <div className="agenda-grupo">{g.itens.map(linha)}</div>
-            </Card>
-          ))}
-          {agenda.feitas.length > 0 && (
-            <Card title="Concluídas" sub={`${agenda.feitas.length}`} right={<Btn kind="g" sm onClick={() => setMostrarFeitas(v => !v)}>{mostrarFeitas ? 'Ocultar' : 'Mostrar'}</Btn>}>
-              {mostrarFeitas && <div className="agenda-grupo">{agenda.feitas.slice(0, 30).map(linha)}</div>}
-            </Card>
-          )}
-          {(marcar.error || apagar.error || convidar.error || cancelar.error) && <p className="t-small c-bad" role="alert">{((marcar.error ?? apagar.error ?? convidar.error ?? cancelar.error) as Error).message}</p>}
-        </>
+    <>
+      {!agenda.grupos.length && <Card><Empty icon={CalendarClock} title="Nada na agenda">Os próximos passos e os contatos que você agendar ao registrar um contato aparecem aqui.</Empty></Card>}
+      {agenda.grupos.map(g => (
+        <Card key={g.grupo} title={ROTULO_DO_GRUPO[g.grupo]} sub={`${g.itens.length}`} icon={CalendarClock} iconTone={g.grupo === 'atrasadas' ? 'bad' : g.grupo === 'hoje' ? 'amber' : 'teal'}>
+          <div className="agenda-grupo">{g.itens.map(linha)}</div>
+        </Card>
+      ))}
+      {agenda.feitas.length > 0 && (
+        <Card title="Concluídas" sub={`${agenda.feitas.length}`} right={<Btn kind="g" sm onClick={() => setMostrarFeitas(v => !v)}>{mostrarFeitas ? 'Ocultar' : 'Mostrar'}</Btn>}>
+          {mostrarFeitas && <div className="agenda-grupo">{agenda.feitas.slice(0, 30).map(linha)}</div>}
+        </Card>
       )}
-      {novo && <NovaPendencia fechar={() => setNovo(false)} google={google.data} />}
-    </Shell>
+      {(marcar.error || apagar.error || convidar.error || cancelar.error) && <p className="t-small c-bad" role="alert">{((marcar.error ?? apagar.error ?? convidar.error ?? cancelar.error) as Error).message}</p>}
+    </>
   );
 }
+
+// -- conta Google ---------------------------------------------------------------------------
 
 /** Conectar a conta Google (para enviar convites do Meet). Só aparece se o servidor tem a integração ligada. */
 function CartaoDoGoogle({ status, carregando, somenteLeitura }: { status?: StatusDoGoogle; carregando: boolean; somenteLeitura: boolean }) {
@@ -115,67 +143,5 @@ function CartaoDoGoogle({ status, carregando, somenteLeitura }: { status?: Statu
         {(conectar.error || desconectar.error) && <p className="t-small c-bad" role="alert">{((conectar.error ?? desconectar.error) as Error).message}</p>}
       </Card>
     </>
-  );
-}
-
-const paraCampo = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-
-function NovaPendencia({ fechar, google }: { fechar: () => void; google?: StatusDoGoogle }) {
-  const qc = useQueryClient();
-  const { mentorandos } = useCarteira();
-  const [titulo, setTitulo] = useState('');
-  const [tipo, setTipo] = useState<'tarefa' | 'contato'>('tarefa');
-  const [aluno, setAluno] = useState('');
-  const [quando, setQuando] = useState('');
-  const [canal, setCanal] = useState<Canal>('video');
-  const [convite, setConvite] = useState(false);
-  const [duracao, setDuracao] = useState<number>(45);
-  const [aviso, setAviso] = useState<string | null>(null);
-  const podeConvite = tipo === 'contato' && !!aluno && !!quando && google?.enabled === true && google.connected;
-  const salvar = useMutation({
-    mutationFn: () => criarPendencia({
-      titulo: titulo.trim(), tipo, aluno_id: aluno || null, para_quando: quando ? new Date(quando).toISOString() : null, canal: tipo === 'contato' ? canal : null,
-      ...(convite && podeConvite ? { convite_meet: true, duracao_min: duracao } : {}),
-    }),
-    onSuccess: r => {
-      qc.invalidateQueries({ queryKey: ['pendencias'] });
-      // O contato foi salvo; se o Google falhou, o mentor vê por quê e refaz pela agenda, sem perder o que escreveu.
-      if (r.convite?.erro) { setAviso(`O contato foi salvo, mas o convite não saiu: ${r.convite.erro} Você pode enviar depois pela agenda.`); return; }
-      fechar();
-    },
-  });
-  const valido = !!titulo.trim() && (tipo === 'tarefa' || !!quando);
-  const ordenados = useMemo(() => [...mentorandos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')), [mentorandos]);
-  if (aviso) {
-    return (
-      <Sheet titulo="Contato salvo" fechar={fechar} aoEnviar={fechar} enviar="Entendi">
-        <Callout icon={Link2} tone="amber"><p className="t-small">{aviso}</p></Callout>
-      </Sheet>
-    );
-  }
-  return (
-    <Sheet titulo="Nova pendência" fechar={fechar} aoEnviar={() => salvar.mutate()} enviar="Salvar" enviando={salvar.isPending} desabilitado={!valido} erro={salvar.error}>
-      <label className="field"><span className="t-small-strong">Tipo</span><span className="input"><select value={tipo} onChange={e => setTipo(e.target.value as 'tarefa' | 'contato')} aria-label="Tipo"><option value="tarefa">Pendência</option><option value="contato">Contato agendado</option></select></span></label>
-      <label className="field"><span className="t-small-strong">O que fazer</span><span className="input"><input required maxLength={160} value={titulo} onChange={e => setTitulo(e.target.value)} placeholder={tipo === 'contato' ? 'Ex.: conversa sobre o plano de dezembro' : 'Ex.: montar plano de revisão'} /></span></label>
-      <label className="field"><span className="t-small-strong">Aluno (opcional)</span><span className="input"><select value={aluno} onChange={e => setAluno(e.target.value)} aria-label="Aluno"><option value="">Nenhum</option>{ordenados.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}</select></span></label>
-      <label className="field"><span className="t-small-strong">{tipo === 'contato' ? 'Quando' : 'Para quando (opcional)'}</span><span className="input"><input type="datetime-local" required={tipo === 'contato'} min={paraCampo(new Date())} value={quando} onChange={e => setQuando(e.target.value)} /></span></label>
-      {tipo === 'contato' && <label className="field"><span className="t-small-strong">Canal</span><span className="input"><select value={canal} onChange={e => setCanal(e.target.value as Canal)} aria-label="Canal">{CANAIS.map(c => <option key={c.valor} value={c.valor}>{c.rotulo}</option>)}</select></span></label>}
-      {tipo === 'contato' && google?.enabled && (
-        google.connected
-          ? (
-            <div className="stack-s">
-              <label className="hrow t-small"><input type="checkbox" checked={convite} disabled={!podeConvite} onChange={e => setConvite(e.target.checked)} /> Enviar convite do Google Meet para o aluno</label>
-              {!podeConvite && <span className="t-small muted">Escolha o aluno e a data para poder enviar o convite.</span>}
-              {convite && podeConvite && (
-                <>
-                  <label className="field"><span className="t-small-strong">Duração</span><span className="input"><select value={duracao} onChange={e => setDuracao(Number(e.target.value))} aria-label="Duração">{DURACOES_DO_MEET.map(d => <option key={d} value={d}>{d} minutos</option>)}</select></span></label>
-                  <span className="t-small muted">O Google cria o evento na sua agenda e envia o e-mail com o link ao aluno. Só vão o horário e o e-mail dele, com um título genérico.</span>
-                </>
-              )}
-            </div>
-          )
-          : <span className="t-small muted">Para enviar convite do Meet, conecte sua conta Google no topo da Agenda.</span>
-      )}
-    </Sheet>
   );
 }

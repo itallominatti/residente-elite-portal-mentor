@@ -19,7 +19,7 @@ const novoId = () => `mk-${seq++}`;
 
 type Contato = { id: string; student_id: string; author_id: string; author_name: string; channel: string; occurred_at: string; duration_min: number | null; summary: string; mood: string | null; created_at: string };
 type Nota = { id: string; student_id: string; author_id: string; body: string; sensitive: boolean; created_at: string; updated_at: string };
-type Pend = { id: string; owner_id: string; student_id: string | null; student_name: string | null; kind: string; channel: string | null; title: string; due_at: string | null; done_at: string | null; source_contact_id: string | null; created_at: string; meet_url: string | null };
+type Pend = { id: string; owner_id: string; student_id: string | null; student_name: string | null; kind: string; channel: string | null; title: string; due_at: string | null; done_at: string | null; source_contact_id: string | null; created_at: string; meet_url: string | null; meet_duration_min: number; color: string | null };
 type Obj = { id: string; student_id: string; author_id: string; author_name: string; title: string; detail: string; due_date: string | null; progress: number; done_at: string | null; created_at: string; updated_at: string };
 type Sessao = { id: string; admin_id: string; admin_name: string; mentor_id: string; mentor_name: string; reason: string; detail: string; started_at: string; last_seen_at: string; ended_at: string | null; ip_address: string | null; events: { at: string; method: string; route: string; student_id: string | null; student_name: string | null }[] };
 
@@ -35,6 +35,26 @@ function convidar(ctx: ContextoDoMock, t: Pend): { meet_url: string | null; erro
   t.meet_url = `https://meet.google.com/mock-${t.id.slice(3)}-abc`;
   t.channel = 'video';
   return { meet_url: t.meet_url, erro: null, code: null };
+}
+
+// Revisões agendadas dos alunos (o calendário do mentor). Datas relativas a agora, com hora, para o calendário ter o que mostrar.
+type Rev = { id: string; student_id: string; student_name: string; theme_id: string; theme_name: string; category_name: string | null; stage: string; scheduled_date: string; completed: boolean; completed_at: string | null; moved_by_name: string | null; moved_at: string | null };
+const revisoes: Rev[] = [];
+function semearRevisoes(ctx: ContextoDoMock) {
+  if (revisoes.length) return;
+  const temas: [string, string][] = [['Sepse', 'Clínica Médica'], ['Arritmias', 'Clínica Médica'], ['Trauma', 'Cirurgia'], ['Bronquiolite', 'Pediatria'], ['Pré-eclâmpsia', 'Ginecologia e Obstetrícia'], ['Apendicite', 'Cirurgia']];
+  const etapas = ['d1', 'd7', 'd30', 'd60', 'manutencao'];
+  for (const [id, nome] of ctx.alunos.map(a => [a[0], a[1]] as const)) {
+    const h = hash(id);
+    for (let n = 0; n < 5; n++) {
+      const [tema, cat] = temas[(h + n) % temas.length]!;
+      // Do começo da semana passada ao fim da próxima: horas redondas e quebradas, para ver a grade trabalhar.
+      const quando = new Date(ctx.agora + ((((h >> n) % 10) - 2) * 24 + 8 + ((h + n * 5) % 11)) * 3600_000);
+      quando.setMinutes(((h + n) % 4) * 15, 0, 0);
+      const feita = quando.getTime() < ctx.agora - 24 * 3600_000;
+      revisoes.push({ id: `rv-${id}-${n}`, student_id: id, student_name: nome, theme_id: `th-${n}`, theme_name: tema, category_name: cat, stage: etapas[(h + n) % etapas.length]!, scheduled_date: quando.toISOString(), completed: feita, completed_at: feita ? quando.toISOString() : null, moved_by_name: null, moved_at: null });
+    }
+  }
 }
 
 const contatos: Contato[] = [];
@@ -53,9 +73,9 @@ function semear(ctx: ContextoDoMock) {
     { id: novoId(), student_id: 'a-rafael', author_id: ANA, author_name: ctx.nomeDoMentor[ANA]!, channel: 'mensagem', occurred_at: iso(ctx, 24 * 30), duration_min: null, summary: 'Primeiro contato: apresentei a mentoria e pedi a prova-alvo.', mood: 'motivado', created_at: iso(ctx, 24 * 30) },
   );
   pendencias.push(
-    { id: novoId(), owner_id: ANA, student_id: 'a-rafael', student_name: 'Rafael Teixeira', kind: 'contato', channel: 'ligacao', title: 'Contato com Rafael', due_at: iso(ctx, -3), done_at: null, source_contact_id: null, created_at: iso(ctx, 24), meet_url: null },
-    { id: novoId(), owner_id: ANA, student_id: 'a-camila', student_name: 'Camila Duarte', kind: 'tarefa', channel: null, title: 'Montar plano de revisão de Cardiologia', due_at: iso(ctx, 30), done_at: null, source_contact_id: null, created_at: iso(ctx, 60), meet_url: null },
-    { id: novoId(), owner_id: ANA, student_id: null, student_name: null, kind: 'tarefa', channel: null, title: 'Preparar relatório mensal da carteira', due_at: null, done_at: null, source_contact_id: null, created_at: iso(ctx, 90), meet_url: null },
+    { id: novoId(), owner_id: ANA, student_id: 'a-rafael', student_name: 'Rafael Teixeira', kind: 'contato', channel: 'ligacao', title: 'Contato com Rafael', due_at: iso(ctx, -3), done_at: null, source_contact_id: null, created_at: iso(ctx, 24), meet_url: null, meet_duration_min: 45, color: null },
+    { id: novoId(), owner_id: ANA, student_id: 'a-camila', student_name: 'Camila Duarte', kind: 'tarefa', channel: null, title: 'Montar plano de revisão de Cardiologia', due_at: iso(ctx, 30), done_at: null, source_contact_id: null, created_at: iso(ctx, 60), meet_url: null, meet_duration_min: 45, color: null },
+    { id: novoId(), owner_id: ANA, student_id: null, student_name: null, kind: 'tarefa', channel: null, title: 'Preparar relatório mensal da carteira', due_at: null, done_at: null, source_contact_id: null, created_at: iso(ctx, 90), meet_url: null, meet_duration_min: 45, color: null },
   );
   objetivos.push({ id: novoId(), student_id: 'a-rafael', author_id: ANA, author_name: ctx.nomeDoMentor[ANA]!, title: 'Fechar Cardiologia e Pediatria', detail: 'Antes do simulado de dezembro.', due_date: '2026-12-10', progress: 35, done_at: null, created_at: iso(ctx, 24 * 12), updated_at: iso(ctx, 24 * 5) });
 }
@@ -176,10 +196,10 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
         if (!b.resumo || !b.canal) return json({ error: !b.canal ? 'Informe o canal do contato.' : 'Informe o resumo do contato.' }, 400);
         const c: Contato = { id: novoId(), student_id: id, author_id: quem.user, author_name: ctx.nomeDoMentor[quem.user] ?? '', channel: String(b.canal), occurred_at: String(b.ocorreu_em ?? new Date(ctx.agora).toISOString()), duration_min: (b.duracao_min as number | null) ?? null, summary: String(b.resumo), mood: (b.humor as string | null) ?? null, created_at: new Date(ctx.agora).toISOString() };
         contatos.unshift(c);
-        for (const passo of (b.proximos_passos as { titulo: string; prazo?: string }[] | undefined) ?? []) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'tarefa', channel: null, title: passo.titulo, due_at: passo.prazo ? `${passo.prazo}T23:59:00-03:00` : null, done_at: null, source_contact_id: c.id, created_at: c.created_at, meet_url: null });
+        for (const passo of (b.proximos_passos as { titulo: string; prazo?: string }[] | undefined) ?? []) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'tarefa', channel: null, title: passo.titulo, due_at: passo.prazo ? `${passo.prazo}T23:59:00-03:00` : null, done_at: null, source_contact_id: c.id, created_at: c.created_at, meet_url: null, meet_duration_min: 45, color: null });
         const prox = b.proximo_contato as { quando: string; canal?: string; convite_meet?: boolean } | undefined;
         let convite: { meet_url: string | null; erro: string | null; code: string | null } | undefined;
-        if (prox) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'contato', channel: prox.canal ?? c.channel, title: `Contato com ${nome(id).split(' ')[0]}`, due_at: prox.quando, done_at: null, source_contact_id: c.id, created_at: c.created_at, meet_url: null });
+        if (prox) pendencias.push({ id: novoId(), owner_id: quem.user, student_id: id, student_name: nome(id), kind: 'contato', channel: prox.canal ?? c.channel, title: `Contato com ${nome(id).split(' ')[0]}`, due_at: prox.quando, done_at: null, source_contact_id: c.id, created_at: c.created_at, meet_url: null, meet_duration_min: 45, color: null });
         if (prox?.convite_meet) { const t = pendencias[pendencias.length - 1]!; convite = convidar(ctx, t); }
         return json(convite ? { ...c, convite } : c, 201);
       }
@@ -220,6 +240,32 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
     if (metodo === 'PATCH') { n.body = String(corpo().texto ?? n.body); n.updated_at = new Date(ctx.agora + 1000).toISOString(); return json(n); }
   }
 
+  if (p === '/mentoring/revisoes/') {
+    semearRevisoes(ctx);
+    const alvo = url.searchParams.get('mentor_id') || (sessao ? sessao.mentor_id : null);
+    const lista = alvo ? ctx.alunos.filter(a => a[2] === alvo) : ctx.escopo();
+    const ids = new Set(lista.map(a => a[0]));
+    const de = Date.parse(url.searchParams.get('de') ?? ''), ate = Date.parse(url.searchParams.get('ate') ?? '');
+    if (Number.isNaN(de) || Number.isNaN(ate)) return json({ error: 'O início do período está num formato inválido. Use data e hora, como 2026-11-18T20:00.' }, 400);
+    const aluno = url.searchParams.get('aluno_id'), feitas = url.searchParams.get('concluidas') === 'true';
+    const out = revisoes.filter(r => ids.has(r.student_id) && Date.parse(r.scheduled_date) >= de && Date.parse(r.scheduled_date) < ate && (!aluno || r.student_id === aluno) && (feitas || !r.completed));
+    return json({ results: out.sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date)) });
+  }
+  const rev = p.match(/^\/mentoring\/revisoes\/([^/]+)\/$/);
+  if (rev && metodo === 'PATCH') {
+    semearRevisoes(ctx);
+    const r = revisoes.find(x => x.id === rev[1]);
+    if (!r) return json({ error: 'Revisão não encontrada.' }, 404);
+    if (!admin && !ctx.escopo().some(a => a[0] === r.student_id)) return naoAtende();
+    if (r.completed) return json({ error: 'Esta revisão já foi concluída e não pode ser remarcada.' }, 400);
+    const nova = Date.parse(String(corpo().para_quando ?? ''));
+    if (Number.isNaN(nova)) return json({ error: 'A nova data está num formato inválido. Use data e hora, como 2026-11-18T20:00.' }, 400);
+    if (nova < ctx.agora - 5 * 60_000) return json({ error: 'A nova data e hora precisa ser no futuro.' }, 400);
+    r.scheduled_date = new Date(nova).toISOString(); r.moved_by_name = ctx.nomeDoMentor[quem.user] ?? 'Administrador'; r.moved_at = new Date(ctx.agora).toISOString();
+    const dia = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    return json({ ...r, no_mesmo_dia: revisoes.filter(x => x.student_id === r.student_id && x.id !== r.id && !x.completed && dia(x.scheduled_date) === dia(r.scheduled_date)).length });
+  }
+
   if (p === '/mentoring/google/') {
     if (metodo === 'DELETE') { lembrarGoogle(false); return json(undefined, 204); }
     return json({ enabled: true, connected: googleConectado, google_email: googleConectado ? GOOGLE_EMAIL : null });
@@ -244,7 +290,7 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
       if (!String(b.titulo ?? '').trim()) return json({ error: 'Informe o título.' }, 400);
       if (b.tipo === 'contato' && !b.para_quando) return json({ error: 'Um contato agendado precisa de data e hora.' }, 400);
       if (b.aluno_id && !ctx.escopo().some(a => a[0] === b.aluno_id)) return naoAtende();
-      const t: Pend = { id: novoId(), owner_id: quem.user, student_id: (b.aluno_id as string | null) ?? null, student_name: b.aluno_id ? nome(String(b.aluno_id)) : null, kind: String(b.tipo ?? 'tarefa'), channel: (b.canal as string | null) ?? null, title: String(b.titulo), due_at: (b.para_quando as string | null) ?? null, done_at: null, source_contact_id: null, created_at: new Date(ctx.agora).toISOString(), meet_url: null };
+      const t: Pend = { id: novoId(), owner_id: quem.user, student_id: (b.aluno_id as string | null) ?? null, student_name: b.aluno_id ? nome(String(b.aluno_id)) : null, kind: String(b.tipo ?? 'tarefa'), channel: (b.canal as string | null) ?? null, title: String(b.titulo), due_at: (b.para_quando as string | null) ?? null, done_at: null, source_contact_id: null, created_at: new Date(ctx.agora).toISOString(), meet_url: null, meet_duration_min: Number(b.duracao_min ?? 45), color: (b.cor as string | null) ?? null };
       pendencias.push(t);
       if (b.convite_meet) return json({ ...t, convite: convidar(ctx, t) }, 201);
       return json(t, 201);
@@ -262,7 +308,14 @@ export function responderAcompanhamento(ctx: ContextoDoMock, p: string, metodo: 
     const t = pendencias.find(x => x.id === pend[1]);
     if (!t || t.owner_id !== quem.user) return json({ error: 'Registro não encontrado.' }, 404);
     if (metodo === 'DELETE') { pendencias.splice(pendencias.indexOf(t), 1); return json(undefined, 204); }
-    if (metodo === 'PATCH') { const b = corpo(); if ('feita' in b) t.done_at = b.feita ? new Date(ctx.agora).toISOString() : null; return json(t); }
+    if (metodo === 'PATCH') {
+      const b = corpo();
+      if ('feita' in b) t.done_at = b.feita ? new Date(ctx.agora).toISOString() : null;
+      if ('cor' in b) { if (b.cor && !['azul', 'verde', 'amarelo', 'laranja', 'vermelho', 'roxo', 'rosa', 'cinza'].includes(String(b.cor))) return json({ error: `Cor inválida: '${b.cor}'.` }, 400); t.color = (b.cor as string | null) || null; }
+      if ('titulo' in b) t.title = String(b.titulo);
+      if ('para_quando' in b) { if (t.kind === 'contato' && !b.para_quando) return json({ error: 'Um contato agendado precisa de data e hora.' }, 400); t.due_at = (b.para_quando as string | null) || null; }
+      return json(t);
+    }
   }
 
   const obj = p.match(/^\/mentoring\/plano\/([^/]+)\/$/);

@@ -14,6 +14,7 @@ const RadarPage = lazy(() => import('@/pages/RadarPage'));
 const MentoresPage = lazy(() => import('@/pages/admin/MentoresPage'));
 const MentorPage = lazy(() => import('@/pages/admin/MentorPage'));
 const AuditoriaPage = lazy(() => import('@/pages/admin/AuditoriaPage'));
+const RevisoesPage = lazy(() => import('@/pages/admin/RevisoesPage'));
 const AgendaPage = lazy(() => import('@/pages/AgendaPage'));
 const ElitinhoPage = lazy(() => import('@/pages/ElitinhoPage'));
 const NaoEncontrada = lazy(() => import('@/pages/NaoEncontrada'));
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/radar" element={<ExigeLogin><ExigeCarteira><RadarPage /></ExigeCarteira></ExigeLogin>} />
             {FEATURES.elitinhoDoMentor && <Route path="/elitinho" element={<ExigeLogin><ExigeCarteira><ElitinhoPage /></ExigeCarteira></ExigeLogin>} />}
             {FEATURES.acompanhamento && <Route path="/agenda" element={<ExigeLogin><ExigeCarteira><AgendaPage /></ExigeCarteira></ExigeLogin>} />}
+            {FEATURES.acompanhamento && <Route path="/admin/revisoes" element={<ExigeLogin><SoAdmin><RevisoesPage /></SoAdmin></ExigeLogin>} />}
             {FEATURES.acompanhamento && <Route path="/admin/auditoria" element={<ExigeLogin><SoAdmin><AuditoriaPage /></SoAdmin></ExigeLogin>} />}
             <Route path="/admin/mentores" element={<ExigeLogin><SoAdmin><MentoresPage /></SoAdmin></ExigeLogin>} />
             <Route path="/admin/mentores/:id" element={<ExigeLogin><SoAdmin><MentorPage /></SoAdmin></ExigeLogin>} />

@@ -5,7 +5,7 @@ import type { Pendencia } from '@/lib/api/acompanhamento';
 // 18/11/2026, 12h em São Paulo.
 const AGORA = Date.parse('2026-11-18T15:00:00Z');
 const p = (id: string, due_at: string | null, extra: Partial<Pendencia> = {}): Pendencia => ({
-  id, student_id: null, student_name: null, kind: 'tarefa', channel: null, title: id, due_at, done_at: null, source_contact_id: null, created_at: '', meet_url: null, ...extra,
+  id, student_id: null, student_name: null, kind: 'tarefa', channel: null, title: id, due_at, done_at: null, source_contact_id: null, created_at: '', meet_url: null, meet_duration_min: 45, color: null, ...extra,
 });
 
 describe('agenda', () => {

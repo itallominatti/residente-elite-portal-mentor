@@ -40,3 +40,59 @@ button.sb-i { width: 100%; text-align: left; }
 .pend:first-of-type { border-top: 0; }
 .pend input[type=checkbox] { margin-top: 4px; width: 18px; height: 18px; }
 .pend.feita .t-strong { text-decoration: line-through; color: var(--ink2); }
+
+/* Calendário (grade por horário, estilo Google Calendar). */
+.cal { border: 1px solid var(--line); border-radius: 16px; background: var(--card); overflow: hidden; display: flex; flex-direction: column; }
+.cal-head { display: grid; border-bottom: 1px solid var(--line); background: var(--card); }
+.cal-dia { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: 0; background: none; border-left: 1px solid var(--line); font: inherit; color: var(--ink2); cursor: default; }
+.cal-dia:not(:disabled) { cursor: pointer; }
+.cal-dia:not(:disabled):hover { background: var(--bg, #f4f7f8); }
+.cal-dia-n { font: 700 11px/1 var(--f-title); letter-spacing: .06em; text-transform: uppercase; }
+.cal-dia-d { font: 600 20px/28px var(--f-title); width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); }
+.cal-dia.hoje .cal-dia-n { color: var(--teal); }
+.cal-dia.hoje .cal-dia-d { background: var(--teal); color: #fff; }
+.cal-scroll { overflow: auto; max-height: min(72vh, 760px); position: relative; }
+.cal-grid { display: grid; grid-template-columns: 52px 1fr; position: relative; }
+.cal-horas { position: relative; }
+.cal-horas span { position: absolute; right: 6px; transform: translateY(-50%); font: 600 10.5px/1 var(--f-text); color: var(--ink3); }
+.cal-cols { display: grid; position: relative; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 51px, var(--line) 51px, var(--line) 52px); }
+.cal-col { position: relative; border-left: 1px solid var(--line); min-width: 0; }
+.cal-col.hoje { background: rgba(37, 107, 128, .045); }
+.cal-col.cria { cursor: cell; }
+.cal-agora { position: absolute; left: 0; right: 0; height: 2px; background: #ea4335; z-index: 3; pointer-events: none; }
+.cal-agora::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: #ea4335; }
+.cal-ev { position: absolute; z-index: 2; box-sizing: border-box; padding: 3px 6px; border-radius: 8px; border-left: 4px solid var(--ev-bd); background: var(--ev-bg); color: var(--ev-tx); overflow: hidden; display: flex; flex-direction: column; gap: 1px; font: 600 12px/1.25 var(--f-text); cursor: pointer; user-select: none; touch-action: manipulation; box-shadow: 0 1px 2px rgba(14, 54, 67, .12); }
+.cal-ev.mov { cursor: grab; }
+.cal-ev:hover { filter: brightness(.97); z-index: 4; }
+.cal-ev:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; z-index: 5; }
+.cal-ev.arrastando { cursor: grabbing; opacity: .85; z-index: 6; box-shadow: 0 8px 18px rgba(14, 54, 67, .28); }
+.cal-ev.feito { opacity: .55; }
+.cal-ev.feito .cal-ev-t { text-decoration: line-through; }
+.cal-ev.t-revisao { border-left-style: dashed; background-image: repeating-linear-gradient(135deg, transparent 0, transparent 6px, rgba(255, 255, 255, .45) 6px, rgba(255, 255, 255, .45) 12px); }
+.cal-ev-h { font-weight: 700; font-size: 11px; opacity: .85; }
+.cal-ev-t { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-ev-s { font-weight: 500; font-size: 11px; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cor-azul { --ev-bg: #dbeafe; --ev-bd: #3b82f6; --ev-tx: #1e3a8a; --sw: #3b82f6; }
+.cor-verde { --ev-bg: #dcfce7; --ev-bd: #22c55e; --ev-tx: #14532d; --sw: #22c55e; }
+.cor-amarelo { --ev-bg: #fef9c3; --ev-bd: #eab308; --ev-tx: #713f12; --sw: #eab308; }
+.cor-laranja { --ev-bg: #ffedd5; --ev-bd: #f97316; --ev-tx: #7c2d12; --sw: #f97316; }
+.cor-vermelho { --ev-bg: #fee2e2; --ev-bd: #ef4444; --ev-tx: #7f1d1d; --sw: #ef4444; }
+.cor-roxo { --ev-bg: #ede9fe; --ev-bd: #8b5cf6; --ev-tx: #4c1d95; --sw: #8b5cf6; }
+.cor-rosa { --ev-bg: #fce7f3; --ev-bd: #ec4899; --ev-tx: #831843; --sw: #ec4899; }
+.cor-cinza { --ev-bg: #f1f5f9; --ev-bd: #94a3b8; --ev-tx: #334155; --sw: #94a3b8; }
+.cal-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cal-barra .grow { flex: 1; }
+.cal-titulo { font: 700 18px/1.2 var(--f-title); color: var(--ink); min-width: 160px; }
+.cal-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+.cal-seg button { border: 0; background: none; padding: 7px 12px; font: 600 13px/1 var(--f-text); color: var(--ink2); cursor: pointer; }
+.cal-seg button.on { background: var(--teal); color: #fff; }
+.cal-camada { display: inline-flex; align-items: center; gap: 6px; font: 600 13px/1 var(--f-text); color: var(--ink); }
+.cal-camada i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.paleta { display: flex; flex-wrap: wrap; gap: 8px; }
+.paleta button { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; background: var(--sw, #fff); cursor: pointer; padding: 0; }
+.paleta button.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--card) inset; }
+.paleta button.padrao { background: var(--card); border: 2px dashed var(--line); }
+.paleta button.padrao.on { border-style: solid; border-color: var(--ink); }
+@media (max-width: 720px) { .cal-ev-s { display: none; } .cal-horas span { font-size: 9.5px; } }
+.cal-ev.curto { flex-direction: row; align-items: center; gap: 6px; padding-top: 0; padding-bottom: 0; }
+.cal-ev.curto .cal-ev-t { flex: 1; min-width: 0; }

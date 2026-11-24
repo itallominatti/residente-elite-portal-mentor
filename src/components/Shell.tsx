@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarClock, Sparkles, Eye, ExternalLink, House, Lock, LogOut, MessageSquare, Radar, ScrollText, Users, UsersRound, Briefcase, type LucideProps } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CalendarDays, Sparkles, Eye, ExternalLink, House, Lock, LogOut, MessageSquare, Radar, ScrollText, Users, UsersRound, Briefcase, type LucideProps } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { ComponentType } from 'react';
 import logo from '@/assets/logo.png';
@@ -52,7 +52,7 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
     ['Comunicação', [{ label: 'Conversas', to: '/conversas', icon: MessageSquare, badge: contagem.esperando || undefined, bad: true }, ...(FEATURES.elitinhoDoMentor && !viewas ? [{ label: 'Elitinho', to: '/elitinho', icon: Sparkles, ai: true }] : [])]],
     ...(FEATURES.acompanhamento ? [[viewas ? 'Agenda do mentor' : 'Meu dia', [{ label: 'Agenda', to: '/agenda', icon: CalendarClock, badge: naAgenda || undefined }]] as [string, Item[]]] : []),
   ] : [
-    [null, [{ label: 'Mentores', to: '/admin/mentores', icon: UsersRound }, ...(FEATURES.acompanhamento ? [{ label: 'Auditoria', to: '/admin/auditoria', icon: ScrollText }] : [])]],
+    [null, [{ label: 'Mentores', to: '/admin/mentores', icon: UsersRound }, ...(FEATURES.acompanhamento ? [{ label: 'Revisões', to: '/admin/revisoes', icon: CalendarDays }, { label: 'Auditoria', to: '/admin/auditoria', icon: ScrollText }] : [])]],
   ];
 
   const sairDoVerComo = () => { const id = verComo?.mentorId; sairVerComo(); nav(id ? `/admin/mentores/${id}` : '/admin/mentores'); };
