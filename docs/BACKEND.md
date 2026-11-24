@@ -78,6 +78,8 @@ Registrar um contato cria os próximos passos e o próximo contato (pendências)
 - A pendência ganha `color` (`azul`, `verde`, `amarelo`, `laranja`, `vermelho`, `roxo`, `rosa`, `cinza`; vazio = padrão do tipo) em `POST` e `PATCH`.
 - No portal: a Agenda tem o calendário por horário (dia e semana, hora de São Paulo, encaixe de 15 min), com pendências, contatos e revisões; clicar num horário cria, arrastar remarca, clicar num item abre o detalhe (pintar, concluir, apagar, Meet). A revisão arrastada pede confirmação e avisa se o dia do aluno fica cheio. O admin tem a página "Revisões" (`/admin/revisoes`) com filtro por mentor. Arrastar não funciona no toque (briga com a rolagem): pelo detalhe dá para remarcar digitando.
 
+**7d. A prova do aluno na ordem do simulado (feito).** `GET /mentoring/students/<id>/provas/<tentativa>/` devolve a prova como o modal de respostas do admin-hub a mostra: cada questão **na ordem do simulado** (Q1, Q2...), com enunciado (texto rico), categoria e tema, o resultado (acertou, errou, em branco), as alternativas (qual o aluno marcou e qual é a certa, com a explicação da alternativa quando houver) e o comentário da questão. Questão anulada vem marcada. Mesma regra de acesso do estudo; tentativa de outro aluno responde "Prova não encontrada". No portal, a aba Estudo abre a prova com "Ver prova" em cada simulado; o histórico corrido de questões ficou recolhido, e cada linha leva à prova. O texto rico passa pelo mesmo filtro do back-end e do admin-hub (`src/lib/richText.ts`).
+
 **8. Agregados para o admin (não feito).** Tempo médio de resposta por mentor. Hoje o portal calcula só "aguardando resposta" e "em risco" por mentor, no navegador.
 
 ## Ordem para publicar
