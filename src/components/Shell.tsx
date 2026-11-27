@@ -1,16 +1,17 @@
-import type { ReactNode } from 'react';
+import { useState, type ComponentType, type ReactNode } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarClock, CalendarDays, Sparkles, Eye, ExternalLink, House, Lock, LogOut, MessageSquare, Radar, ScrollText, Users, UsersRound, Briefcase, type LucideProps } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, CalendarDays, Sparkles, Eye, ExternalLink, House, Lock, LogOut, MessageSquare, Radar, ScrollText, Users, UsersRound, Briefcase, type LucideProps } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import type { ComponentType } from 'react';
 import logo from '@/assets/logo.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEscopo } from '@/contexts/EscopoContext';
 import { useArvore, useCarteira } from '@/hooks/useCarteira';
+import { OnboardingDoMentor } from '@/components/OnboardingDoMentor';
 import { Avatar, Btn } from '@/components/ui';
 import { hojeLongo } from '@/lib/format';
 import { listarPendencias } from '@/lib/api/acompanhamento';
 import { pedemAtencao } from '@/lib/agenda';
+import { deveMostrarOnboarding, marcarOnboardingConcluido, onboardingConcluido } from '@/lib/onboarding';
 import { FEATURES } from '@/config';
 
 type Icon = ComponentType<LucideProps>;
@@ -38,6 +39,16 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
   const temCarteira = mentorId !== undefined;
   const { contagem } = useCarteira();
   const viewas = !!verComo;
+  const [guiaAberto, setGuiaAberto] = useState(false);
+  const [dispensado, setDispensado] = useState(false);
+  const mostrarGuiaAutomatico = !dispensado && deveMostrarOnboarding({
+    userId: user?.id, temCarteira, verComo: viewas, concluido: onboardingConcluido(user?.id),
+  });
+  const fecharGuia = () => {
+    marcarOnboardingConcluido(user?.id);
+    setDispensado(true);
+    setGuiaAberto(false);
+  };
   // Em "ver como" é a agenda do mentor visto (só leitura, e o servidor a registra na trilha).
   const agenda = useQuery({ queryKey: ['pendencias', verComo?.mentorId ?? 'eu'], queryFn: () => listarPendencias({ mentorId: verComo?.mentorId }), enabled: FEATURES.acompanhamento && temCarteira, refetchInterval: 120_000 });
   const naAgenda = agenda.data ? pedemAtencao(agenda.data) : 0;
@@ -95,6 +106,7 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
             {isAdmin && !viewas && souMentorTambem && (modoAdmin === 'minha-carteira'
               ? <button type="button" className="sb-i" onClick={() => { usarMinhaCarteira(false); nav('/admin/mentores'); }}><ArrowLeft size={18} aria-hidden /><span>Voltar ao painel admin</span></button>
               : <button type="button" className="sb-i" onClick={() => { usarMinhaCarteira(true); nav('/'); }}><Briefcase size={18} aria-hidden /><span>Minha carteira</span></button>)}
+            {temCarteira && !viewas && <button type="button" className="sb-i dim" onClick={() => setGuiaAberto(true)}><BookOpen size={18} aria-hidden /><span>Guia do portal</span></button>}
             {isAdmin && <a className="sb-i dim" href="https://admin.residente-elite.com" target="_blank" rel="noreferrer"><ExternalLink size={18} aria-hidden /><span>Abrir o admin-hub</span></a>}
             <button type="button" className="sb-i dim" onClick={sair}><LogOut size={18} aria-hidden /><span>Sair</span></button>
           </div>
@@ -103,9 +115,14 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
           <header className={`mtop${back ? ' mback' : ''}`}>
             {back && <Link className="ibtn plain" to={back} aria-label="Voltar"><ArrowLeft size={18} aria-hidden /></Link>}
             <span className="grow"><h1 className={back ? 't-title trunc' : undefined}>{title}</h1>{sub && <span className="sub">{sub}</span>}</span>
+            {temCarteira && !viewas && <button type="button" className="ibtn plain" onClick={() => setGuiaAberto(true)} aria-label="Abrir guia do portal"><BookOpen size={18} aria-hidden /></button>}
             <button type="button" className="av-btn" onClick={sair} aria-label="Sair da conta"><Avatar nome={nome || user?.email || '?'} id={user?.id} size={32} /></button>
           </header>
-          <header className="dtop"><span className="t-small muted">{hojeLongo()}</span><span className="grow" /></header>
+          <header className="dtop">
+            <span className="t-small muted">{hojeLongo()}</span>
+            <span className="grow" />
+            {temCarteira && !viewas && <Btn kind="g" sm icon={BookOpen} onClick={() => setGuiaAberto(true)}>Guia do portal</Btn>}
+          </header>
           <main className="content" id="conteudo" tabIndex={-1}>{children}</main>
         </div>
         {tabs.length > 0 && !noTabs && (
@@ -118,6 +135,12 @@ export function Shell({ title, sub, back, children, noTabs }: { title: string; s
           </nav>
         )}
       </div>
+      <OnboardingDoMentor
+        aberto={guiaAberto || mostrarGuiaAutomatico}
+        nome={nome}
+        isSubmentor={user?.role === 'submentor'}
+        aoConcluir={fecharGuia}
+      />
     </div>
   );
 }
