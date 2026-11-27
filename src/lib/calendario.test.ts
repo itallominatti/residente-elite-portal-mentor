@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  arredondar, corDoTipo, diaDaSemana, diaDe, diasDaSemana, horaDoMinuto, inicioDaSemana, minutoNoDia, paraIso, periodoDosDias, posicionar,
-  rotuloDoPeriodo, somarDias, somarMinutos,
+  agruparRevisoesPorDia, arredondar, corDoTipo, diaDaSemana, diaDe, diasDaSemana, filtrarRevisoes, horaDoMinuto, inicioDaSemana, minutoNoDia,
+  paraIso, periodoDosDias, posicionar, revisaoAtrasada, rotuloDaEtapa, rotuloDoPeriodo, somarDias, somarMinutos,
 } from '@/lib/calendario';
 
 describe('dias no fuso de São Paulo', () => {
@@ -103,13 +103,55 @@ describe('posicionar (sobreposição)', () => {
 });
 
 describe('cores', () => {
-  it('usa a escolhida; senão a do tipo; revisão pela etapa', () => {
+  it('usa a escolhida; senão a do tipo; revisão pela etapa (real ou legada)', () => {
     expect(corDoTipo('pendencia', 'roxo')).toBe('roxo');
     expect(corDoTipo('pendencia', null)).toBe('verde');
     expect(corDoTipo('contato', '')).toBe('azul');
+    expect(corDoTipo('revisao', null, 'primeira')).toBe('laranja');
+    expect(corDoTipo('revisao', null, 'segunda')).toBe('amarelo');
+    expect(corDoTipo('revisao', null, 'terceira')).toBe('roxo');
     expect(corDoTipo('revisao', null, 'd1')).toBe('laranja');
     expect(corDoTipo('revisao', null, 'qualquer')).toBe('cinza');
     expect(corDoTipo('pendencia', 'fora-da-paleta')).toBe('verde');
+    expect(rotuloDaEtapa('primeira')).toBe('1ª rev.');
+    expect(rotuloDaEtapa('d7')).toBe('D7');
+  });
+});
+
+describe('agrupamento e busca de revisões', () => {
+  const mk = (id: string, student_id: string, student_name: string, theme_name: string, dia: string, completed = false) => ({
+    id, student_id, student_name, theme_name, category_name: 'Clínica Médica',
+    scheduled_date: `${dia}T15:00:00Z`, completed,
+  });
+
+  it('agrupa por dia com contagem de pendentes, atrasadas, concluídas e alunos distintos', () => {
+    const hoje = '2026-11-25';
+    const dias = ['2026-11-24', '2026-11-25', '2026-11-26'];
+    const lista = [
+      mk('1', 'a1', 'Ana', 'Sepse', '2026-11-24', false),
+      mk('2', 'a1', 'Ana', 'Arritmias', '2026-11-24', true),
+      mk('3', 'a2', 'Bruno', 'Trauma', '2026-11-24', false),
+      mk('4', 'a1', 'Ana', 'Pneumonia', '2026-11-25', false),
+    ];
+    const grupos = agruparRevisoesPorDia(lista, dias, hoje);
+    expect(grupos.get('2026-11-24')).toMatchObject({ pendentes: 2, atrasadas: 2, concluidas: 1, alunos: 2 });
+    expect(grupos.get('2026-11-24')!.itens.map(x => x.id)).toEqual(['1', '3', '2']);
+    expect(grupos.get('2026-11-25')).toMatchObject({ pendentes: 1, atrasadas: 0, concluidas: 0, alunos: 1 });
+    expect(grupos.get('2026-11-26')).toMatchObject({ pendentes: 0, atrasadas: 0, concluidas: 0, alunos: 0 });
+    expect(revisaoAtrasada(lista[0]!, hoje)).toBe(true);
+    expect(revisaoAtrasada(lista[1]!, hoje)).toBe(false);
+    expect(revisaoAtrasada(lista[3]!, hoje)).toBe(false);
+  });
+
+  it('filtra por tema, aluno ou área ignorando acentos e maiúsculas', () => {
+    const lista = [
+      mk('1', 'a1', 'Natália Freitas', 'Pré-eclâmpsia', '2026-11-25'),
+      mk('2', 'a2', 'Rafael Teixeira', 'Sepse', '2026-11-25'),
+    ];
+    expect(filtrarRevisoes(lista, 'natalia').map(x => x.id)).toEqual(['1']);
+    expect(filtrarRevisoes(lista, 'pre-eclampsia').map(x => x.id)).toEqual(['1']);
+    expect(filtrarRevisoes(lista, 'clinica').length).toBe(2);
+    expect(filtrarRevisoes(lista, '   ').length).toBe(2);
   });
 });
 

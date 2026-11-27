@@ -92,9 +92,75 @@ export interface EventoDoCalendario<T = unknown> {
   origem: T;
 }
 
-/** Cor padrão de uma revisão pela etapa: quanto mais longe, mais fria. */
-export const COR_DA_ETAPA: Record<string, Cor> = { d1: 'laranja', d7: 'amarelo', d30: 'roxo', d60: 'rosa', manutencao: 'cinza' };
-export const ROTULO_DA_ETAPA: Record<string, string> = { d1: 'D1', d7: 'D7', d30: 'D30', d60: 'D60', manutencao: 'Manutenção' };
+/** Cor padrão de uma revisão pela etapa (aceita etapas reais do banco e códigos legados). */
+export const COR_DA_ETAPA: Record<string, Cor> = {
+  primeira: 'laranja', segunda: 'amarelo', terceira: 'roxo', quarta: 'rosa', quinta: 'cinza',
+  d1: 'laranja', d7: 'amarelo', d30: 'roxo', d60: 'rosa', manutencao: 'cinza',
+};
+export const ROTULO_DA_ETAPA: Record<string, string> = {
+  primeira: '1ª rev.', segunda: '2ª rev.', terceira: '3ª rev.', quarta: '4ª rev.', quinta: '5ª rev.',
+  d1: 'D1', d7: 'D7', d30: 'D30', d60: 'D60', manutencao: 'Manutenção',
+};
+
+export const rotuloDaEtapa = (etapa: string) => ROTULO_DA_ETAPA[etapa] ?? etapa;
+
+/** Atrasada = revisão pendente cujo dia (em São Paulo) é anterior a hoje. */
+export const revisaoAtrasada = (r: { completed: boolean; scheduled_date: string }, hoje: Dia): boolean =>
+  !r.completed && diaDe(r.scheduled_date) < hoje;
+
+export interface GrupoDeRevisoesDoDia<T> {
+  dia: Dia;
+  itens: T[];
+  pendentes: number;
+  atrasadas: number;
+  concluidas: number;
+  alunos: number;
+}
+
+/** Agrupa revisões por dia (em São Paulo) para a faixa diária e para a visão de revisões sem horas artificiais. */
+export function agruparRevisoesPorDia<T extends { scheduled_date: string; completed: boolean; student_id: string }>(
+  revisoes: T[], dias: Dia[], hoje: Dia,
+): Map<Dia, GrupoDeRevisoesDoDia<T>> {
+  const mapa = new Map<Dia, GrupoDeRevisoesDoDia<T>>();
+  const alunosPorDia = new Map<Dia, Set<string>>();
+  for (const d of dias) {
+    mapa.set(d, { dia: d, itens: [], pendentes: 0, atrasadas: 0, concluidas: 0, alunos: 0 });
+    alunosPorDia.set(d, new Set());
+  }
+  for (const r of revisoes) {
+    const d = diaDe(r.scheduled_date);
+    const g = mapa.get(d);
+    if (!g) continue;
+    g.itens.push(r);
+    if (r.completed) g.concluidas++;
+    else {
+      g.pendentes++;
+      if (d < hoje) g.atrasadas++;
+    }
+    alunosPorDia.get(d)!.add(r.student_id);
+  }
+  for (const [d, g] of mapa) {
+    g.alunos = alunosPorDia.get(d)!.size;
+    // Atrasadas e pendentes primeiro; concluídas por último.
+    g.itens.sort((a, b) => Number(a.completed) - Number(b.completed) || a.scheduled_date.localeCompare(b.scheduled_date));
+  }
+  return mapa;
+}
+
+const normalizarTexto = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/** Filtra revisões por nome do aluno, tema ou grande área (sem diferenciar acentos ou caixa). */
+export function filtrarRevisoes<T extends { student_name?: string; theme_name: string; category_name?: string | null }>(
+  revisoes: T[], busca: string,
+): T[] {
+  const termo = normalizarTexto(busca.trim());
+  if (!termo) return revisoes;
+  return revisoes.filter(r =>
+    normalizarTexto(r.theme_name).includes(termo)
+    || normalizarTexto(r.student_name ?? '').includes(termo)
+    || normalizarTexto(r.category_name ?? '').includes(termo),
+  );
+}
 
 export function corDoTipo(tipo: TipoDeEvento, cor?: string | null, etapa?: string): Cor {
   if (cor && (CORES as readonly string[]).includes(cor)) return cor as Cor;

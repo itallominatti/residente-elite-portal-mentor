@@ -38,23 +38,45 @@ function convidar(ctx: ContextoDoMock, t: Pend): { meet_url: string | null; erro
 }
 
 // Revisões agendadas dos alunos (o calendário do mentor). Datas relativas a agora, com hora, para o calendário ter o que mostrar.
-type Rev = { id: string; student_id: string; student_name: string; theme_id: string; theme_name: string; category_name: string | null; stage: string; scheduled_date: string; completed: boolean; completed_at: string | null; moved_by_name: string | null; moved_at: string | null };
+type Rev = {
+  id: string; student_id: string; student_name: string; theme_id: string; theme_name: string; category_name: string | null;
+  stage: string; scheduled_date: string; completed: boolean; completed_at: string | null;
+  suggested_questions: number | null; rescheduled_count: number; moved_by_name: string | null; moved_at: string | null;
+};
 const revisoes: Rev[] = [];
 function semearRevisoes(ctx: ContextoDoMock) {
   if (revisoes.length) return;
   const temas: [string, string][] = [['Sepse', 'Clínica Médica'], ['Arritmias', 'Clínica Médica'], ['Trauma', 'Cirurgia'], ['Bronquiolite', 'Pediatria'], ['Pré-eclâmpsia', 'Ginecologia e Obstetrícia'], ['Apendicite', 'Cirurgia']];
-  const etapas = ['d1', 'd7', 'd30', 'd60', 'manutencao'];
+  const etapas = ['primeira', 'segunda', 'terceira', 'quarta'];
   for (const [id, nome] of ctx.alunos.map(a => [a[0], a[1]] as const)) {
     const h = hash(id);
     for (let n = 0; n < 5; n++) {
       const [tema, cat] = temas[(h + n) % temas.length]!;
-      // Do começo da semana passada ao fim da próxima: horas redondas e quebradas, para ver a grade trabalhar.
       const quando = new Date(ctx.agora + ((((h >> n) % 10) - 2) * 24 + 8 + ((h + n * 5) % 11)) * 3600_000);
       quando.setMinutes(((h + n) % 4) * 15, 0, 0);
       const feita = quando.getTime() < ctx.agora - 24 * 3600_000;
-      revisoes.push({ id: `rv-${id}-${n}`, student_id: id, student_name: nome, theme_id: `th-${n}`, theme_name: tema, category_name: cat, stage: etapas[(h + n) % etapas.length]!, scheduled_date: quando.toISOString(), completed: feita, completed_at: feita ? quando.toISOString() : null, moved_by_name: null, moved_at: null });
+      revisoes.push({
+        id: `rv-${id}-${n}`, student_id: id, student_name: nome, theme_id: `th-${n}`, theme_name: tema, category_name: cat,
+        stage: etapas[(h + n) % etapas.length]!, scheduled_date: quando.toISOString(), completed: feita,
+        completed_at: feita ? quando.toISOString() : null,
+        suggested_questions: n === 0 ? 25 : null, rescheduled_count: n % 3 === 0 ? 1 : 0,
+        moved_by_name: null, moved_at: null,
+      });
     }
   }
+}
+
+export function sugerirNoMock(ctx: ContextoDoMock, id: string, suggested: number | null): Rev | null {
+  semearRevisoes(ctx);
+  const r = revisoes.find(x => x.id === id);
+  if (!r) return null;
+  r.suggested_questions = suggested;
+  return r;
+}
+
+export function revisoesDoAlunoNoMock(ctx: ContextoDoMock, alunoId: string, pendingOnly: boolean): Rev[] {
+  semearRevisoes(ctx);
+  return revisoes.filter(r => r.student_id === alunoId && (!pendingOnly || !r.completed));
 }
 
 const contatos: Contato[] = [];

@@ -12,7 +12,7 @@ export default function RevisoesPage() {
   const mentores = [...(arvore.data?.mentors ?? [])].sort((a, b) => a.full_name.localeCompare(b.full_name, 'pt-BR'));
   return (
     <Shell title="Revisões dos alunos">
-      <PageHead title="Revisões dos alunos" sub="Veja as revisões agendadas e arraste para outro dia e horário. O aluno vê a nova data na agenda dele." />
+      <PageHead title="Revisões dos alunos" sub="Revisões agendadas agrupadas por dia, sem horários artificiais. Clique em qualquer revisão para remarcar ou sugerir questões." />
       <Callout icon={Info} tone="violet"><p className="t-small">Cada remarcação fica registrada (quem, de quando para quando). Remarcar aqui não conta como adiamento do aluno.</p></Callout>
       <div className="cal-barra">
         <span className="t-small-strong">Mentor</span>

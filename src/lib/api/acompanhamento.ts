@@ -127,7 +127,9 @@ export const excluirPendencia = (id: string) => request<void>(`/mentoring/penden
 // ---------- revisões dos alunos (calendário) ----------
 export interface RevisaoDoAluno {
   id: string; student_id: string; student_name: string; theme_id: string; theme_name: string; category_name: string | null; stage: string;
-  scheduled_date: string; completed: boolean; completed_at: string | null; moved_by_name: string | null; moved_at: string | null;
+  scheduled_date: string; completed: boolean; completed_at: string | null;
+  suggested_questions?: number | null; rescheduled_count?: number;
+  moved_by_name: string | null; moved_at: string | null;
 }
 export interface FiltroDeRevisoes { de: string; ate: string; alunoId?: string; mentorId?: string; concluidas?: boolean }
 /** As revisões agendadas da carteira no período (até 100 dias). `mentorId`: só admin; em "ver como" o servidor já usa o mentor visto. */

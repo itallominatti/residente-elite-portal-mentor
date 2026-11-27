@@ -1,12 +1,20 @@
-import { CalendarCheck, NotebookPen, Siren } from 'lucide-react';
+import { CalendarCheck, GraduationCap, NotebookPen, Siren } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Bar, Callout, Card, ErrorBox, Loading, MotivoPill, Stats } from '@/components/ui';
+import { useQuery } from '@tanstack/react-query';
+import { Bar, Callout, Card, ErrorBox, Loading, MotivoPill, Pill, Stats } from '@/components/ui';
 import { FonteDosNumeros, MetaSemanal, Recomecos } from '@/pages/perfil/partes';
 import { useAtividade, useCalendario } from '@/hooks/useMetricas';
 import { useEscopo } from '@/contexts/EscopoContext';
+import { FEATURES } from '@/config';
+import { getQuestionario } from '@/lib/api/revision';
 import { tendencia } from '@/lib/metricas';
 import { dataCurta, dataHora } from '@/lib/format';
 import type { Mentorando } from '@/lib/carteira';
+
+const ROTULO_ANO: Record<string, string> = {
+  first_year: '1º ano', second_year: '2º ano', third_year: '3º ano',
+  fourth_year: '4º ano', fifth_year: '5º ano', sixth_year: '6º ano', degree: 'Formado',
+};
 
 export default function Geral({ m }: { m: Mentorando }) {
   const { somenteLeitura } = useEscopo();
@@ -28,13 +36,49 @@ export default function Geral({ m }: { m: Mentorando }) {
         </div>
         <div className="stack">
           <MetaSemanal alunoId={m.id} somenteLeitura={somenteLeitura} />
+          <PerfilDeProva alunoId={m.id} />
           <Recomecos alunoId={m.id} />
-          <Card title="Contatos e anotações" icon={NotebookPen} iconTone="muted">
-            <p className="t-small muted">Registro de ligações e reuniões, anotações privadas e pendências dependem de um modelo novo no servidor. Por enquanto, o histórico da mentoria é a conversa.</p>
-          </Card>
+          {!FEATURES.acompanhamento && (
+            <Card title="Contatos e anotações" icon={NotebookPen} iconTone="muted">
+              <p className="t-small muted">Registro de ligações e reuniões, anotações privadas e pendências dependem de um modelo novo no servidor. Por enquanto, o histórico da mentoria é a conversa.</p>
+            </Card>
+          )}
         </div>
       </div>
     </>
+  );
+}
+
+/** Questionário de onboarding do aluno (momento, bancas/instituições-alvo e especialidades). */
+function PerfilDeProva({ alunoId }: { alunoId: string }) {
+  const q = useQuery({ queryKey: ['questionario', alunoId], queryFn: () => getQuestionario(alunoId), retry: false, staleTime: 5 * 60_000 });
+  if (q.isLoading || q.error) return null;
+  const maisRecente = q.data?.[0];
+  return (
+    <Card title="Perfil de prova" sub="questionário do aluno" icon={GraduationCap}>
+      {!maisRecente ? (
+        <p className="t-small muted">O aluno ainda não preencheu o questionário de perfil.</p>
+      ) : (
+        <div className="stack-s">
+          <div className="hrow wrap between">
+            <span className="t-small muted">Momento</span>
+            <Pill tone="teal">{ROTULO_ANO[maisRecente.current_year] ?? maisRecente.current_year}</Pill>
+          </div>
+          {maisRecente.institutes.length > 0 && (
+            <div className="stack-xs">
+              <span className="t-small muted">Instituições de interesse</span>
+              <div className="hrow wrap">{maisRecente.institutes.map(i => <Pill key={i} tone="neutral">{i}</Pill>)}</div>
+            </div>
+          )}
+          {maisRecente.especialties.length > 0 && (
+            <div className="stack-xs">
+              <span className="t-small muted">Especialidades</span>
+              <div className="hrow wrap">{maisRecente.especialties.map(e => <Pill key={e} tone="blue">{e}</Pill>)}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 

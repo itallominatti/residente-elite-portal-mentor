@@ -8,7 +8,7 @@
  * "vazio" entra como mentora sem mentorandos; o resto, como a Dra. Ana.
  */
 import { API_BASE_URL, FEATURES } from '@/config';
-import { responderAcompanhamento } from '@/mocks/acompanhamento';
+import { responderAcompanhamento, revisoesDoAlunoNoMock, sugerirNoMock } from '@/mocks/acompanhamento';
 
 const ANA = 'm-ana', PEDRO = 'm-pedro', HELENA = 'm-helena', ADMIN = 'u-admin';
 const agora = Date.now();
@@ -121,10 +121,42 @@ async function responder(url: URL, init: RequestInit): Promise<Response> {
     const f = results.reduce((x, r) => x + r.total_questions_done, 0), c = results.reduce((x, r) => x + r.total_questions_correct, 0);
     return json({ count: results.length, page: 1, page_size: 50, total_pages: 1, summary: { total_themes: results.length, total_questions_done: f, total_questions_correct: c, overall_accuracy: f ? (c / f) * 100 : 0, total_schedules_completed: 88, total_schedules_pending: 14 }, results });
   }
-  if (p === '/revision/priority-themes/') return json({ summary: { critico: 2, prioritario: 3, suporte_secundario: 9, total_evaluated: 14 }, levels: [{ key: 'critico', title: 'Crítico', count: 2, themes: [{ theme_id: 't1', theme_name: 'Sepse', category_name: 'Clínica Médica', total_questions_done: 38, overall_accuracy: 41 }, { theme_id: 't2', theme_name: 'Arritmias', category_name: 'Clínica Médica', total_questions_done: 44, overall_accuracy: 48 }] }] });
-  if (p === '/revision/schedules/') return json([{ id: 's1', theme_name: 'Sepse', stage: 'primeira', scheduled_date: '2026-11-01', completed: false }, { id: 's2', theme_name: 'DPOC', stage: 'segunda', scheduled_date: '2099-01-01', completed: false }]);
+  if (p === '/revision/priority-themes/') return json({
+    summary: { critico: 2, prioritario: 2, suporte_secundario: 2, total_evaluated: 14 },
+    levels: [
+      { key: 'critico', title: 'Crítico', count: 2, themes: [{ theme_id: 't1', theme_name: 'Sepse', theme_weight: 'A', category_name: 'Clínica Médica', total_questions_done: 38, total_questions_correct: 16, overall_accuracy: 41 }, { theme_id: 't2', theme_name: 'Arritmias', theme_weight: 'A', category_name: 'Clínica Médica', total_questions_done: 44, total_questions_correct: 21, overall_accuracy: 48 }] },
+      { key: 'prioritario', title: 'Prioritário', count: 2, themes: [{ theme_id: 't3', theme_name: 'Trauma', theme_weight: 'A', category_name: 'Cirurgia', total_questions_done: 30, total_questions_correct: 19, overall_accuracy: 63 }, { theme_id: 't4', theme_name: 'Bronquiolite', theme_weight: 'B', category_name: 'Pediatria', total_questions_done: 24, total_questions_correct: 14, overall_accuracy: 58 }] },
+      { key: 'suporte_secundario', title: 'Suporte secundário', count: 2, themes: [{ theme_id: 't5', theme_name: 'Apendicite', theme_weight: 'B', category_name: 'Cirurgia', total_questions_done: 22, total_questions_correct: 16, overall_accuracy: 73 }, { theme_id: 't6', theme_name: 'Pré-eclâmpsia', theme_weight: 'A', category_name: 'Ginecologia e Obstetrícia', total_questions_done: 28, total_questions_correct: 21, overall_accuracy: 75 }] },
+    ],
+  });
+  const ctxMock = { quem, alunos: ALUNOS, nomeDoMentor, atende, escopo, json, agora: Date.now() };
+  if (p === '/revision/schedules/') {
+    const id = url.searchParams.get('user_id') ?? '';
+    if (id && !atende(id)) return json({ error: 'Você não atende este aluno.' }, 403);
+    const pendingOnly = url.searchParams.get('pending_only') === 'true';
+    const lista = revisoesDoAlunoNoMock(ctxMock, id || 'a-rafael', pendingOnly);
+    return json(lista);
+  }
+  const sug = p.match(/^\/revision\/schedules\/([^/]+)\/suggestion\/$/);
+  if (sug && metodo === 'PATCH') {
+    const b = JSON.parse(String(init.body ?? '{}')) as { suggested_questions?: number | null };
+    const atualizado = sugerirNoMock(ctxMock, sug[1]!, b.suggested_questions ?? null);
+    if (!atualizado) return json({ error: 'Agendamento de revisão não encontrado' }, 404);
+    return json(atualizado);
+  }
+  if (p === '/questionary/') {
+    const id = url.searchParams.get('user_id') ?? '';
+    if (id && !atende(id)) return json({ error: 'Você não atende este aluno.' }, 403);
+    return json([{
+      id: `q-${id}`,
+      current_year: id === 'a-rafael' ? 'sixth_year' : 'degree',
+      institutes: id === 'a-rafael' ? ['USP', 'UNIFESP', 'ENARE'] : ['SES-PE', 'UPE', 'ENARE'],
+      especialties: id === 'a-rafael' ? ['Clínica Médica', 'Cardiologia'] : ['Pediatria', 'Cirurgia Geral'],
+      created_at: iso(1500), updated_at: iso(1500),
+    }]);
+  }
   if (FEATURES.acompanhamento) {
-    const r = responderAcompanhamento({ quem, alunos: ALUNOS, nomeDoMentor, atende, escopo, json, agora: Date.now() }, p, metodo, url, init);
+    const r = responderAcompanhamento(ctxMock, p, metodo, url, init);
     if (r) return r;
   }
   return json({ detail: `Mock sem rota: ${metodo} ${p}` }, 404);

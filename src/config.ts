@@ -18,8 +18,8 @@ export const API_BASE_URL: string = (env.VITE_API_BASE_URL as string | undefined
   || 'https://api.residente-elite.com/api/v1';
 
 export const FEATURES = {
-  /** Mentor lê evolução, temas prioritários e revisões do aluno (`?user_id=`). Admin sempre lê. */
-  metricasDoMentor: flag(env.VITE_FEATURE_METRICAS_DO_MENTOR),
+  /** Mentor lê evolução, temas prioritários e revisões do aluno (`?user_id=`). Commit `226cc1e` já está na main: ligado por padrão. */
+  metricasDoMentor: flagLigadaPorPadrao(env.VITE_FEATURE_METRICAS_DO_MENTOR),
   /**
    * Contatos, anotações, agenda, plano, carteira com indicadores, leitura do estudo
    * e "ver como" com sessão e trilha no servidor (commits da branch

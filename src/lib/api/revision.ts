@@ -26,11 +26,14 @@ export interface Recomeco { id: string; reset_at: string; themes_restarted: numb
 export const getRecomecos = (alunoId: string) => request<{ results: Recomeco[] }>(`/revision/students/${alunoId}/resets/`);
 
 // ---- só admin hoje (ou para o mentor, com o back-end do commit 226cc1e no ar) ----
-export interface ContatoDaRevisao { id: string; contact_type: string; contact_date: string; questions_done: number; questions_correct: number; accuracy_percentage: number }
+export interface ContatoDaRevisao {
+  id: string; contact_type: string; contact_date: string; questions_done: number; questions_correct: number;
+  accuracy_percentage: number; notes?: string;
+}
 export interface TemaDaEvolucao {
-  theme_id: string; theme_name: string; category_name: string;
+  theme_id: string; theme_name: string; theme_weight?: string; category_name: string;
   total_questions_done: number; total_questions_correct: number; overall_accuracy: number;
-  current_stage: string; contacts: ContatoDaRevisao[];
+  current_stage: string; next_scheduled_date?: string | null; contacts: ContatoDaRevisao[];
 }
 export interface ResumoDaEvolucao { total_themes: number; total_questions_done: number; total_questions_correct: number; overall_accuracy: number; total_schedules_completed: number; total_schedules_pending: number }
 export interface Evolucao { summary: ResumoDaEvolucao; temas: TemaDaEvolucao[] }
@@ -48,11 +51,33 @@ export async function getEvolucao(alunoId: string): Promise<Evolucao> {
   return { summary: resumo ?? { total_themes: 0, total_questions_done: 0, total_questions_correct: 0, overall_accuracy: 0, total_schedules_completed: 0, total_schedules_pending: 0 }, temas };
 }
 
-export interface TemaPrioritario { theme_id: string; theme_name: string; category_name: string; total_questions_done: number; overall_accuracy: number }
+export interface TemaPrioritario {
+  theme_id: string; theme_name: string; theme_weight?: string; category_name: string;
+  total_questions_done: number; total_questions_correct?: number; overall_accuracy: number;
+  current_stage?: string; next_scheduled_date?: string | null;
+}
 export interface NivelDePrioridade { key: 'critico' | 'prioritario' | 'suporte_secundario'; title: string; count: number; themes: TemaPrioritario[] }
 export const getTemasPrioritarios = (alunoId: string) =>
   request<{ summary: { critico: number; prioritario: number; suporte_secundario: number; total_evaluated: number }; levels: NivelDePrioridade[] }>(`/revision/priority-themes/${qs({ user_id: alunoId })}`);
 
-export interface Agendamento { id: string; theme_name: string; stage: string; scheduled_date: string; completed: boolean }
-export const getAgendamentosPendentes = (alunoId: string) =>
-  request<Agendamento[]>(`/revision/schedules/${qs({ user_id: alunoId, pending_only: 'true' })}`);
+export interface Agendamento {
+  id: string; theme_id?: string; theme_name: string; category_name?: string | null; stage: string;
+  scheduled_date: string; completed: boolean; completed_at?: string | null;
+  suggested_questions?: number | null; rescheduled_count?: number;
+}
+export const getAgendamentos = (alunoId: string, pendingOnly = false) =>
+  request<Agendamento[]>(`/revision/schedules/${qs({ user_id: alunoId, pending_only: pendingOnly ? 'true' : undefined })}`);
+export const getAgendamentosPendentes = (alunoId: string) => getAgendamentos(alunoId, true);
+
+/** Define ou limpa (`null`) a sugestão de questões do mentor para uma revisão. */
+export const definirSugestaoDeQuestoes = (scheduleId: string, suggestedQuestions: number | null) =>
+  request<Agendamento>(`/revision/schedules/${scheduleId}/suggestion/`, {
+    method: 'PATCH', body: JSON.stringify({ suggested_questions: suggestedQuestions }),
+  });
+
+// ---- questionário de perfil do aluno ----
+export interface QuestionarioDoAluno {
+  id: string; institutes: string[]; especialties: string[]; current_year: string; created_at: string; updated_at: string;
+}
+export const getQuestionario = (alunoId: string) =>
+  request<QuestionarioDoAluno[]>(`/questionary/${qs({ user_id: alunoId })}`);

@@ -33,7 +33,7 @@ export default function AgendaPage() {
     <Shell title="Agenda">
       <PageHead
         title={verComo ? `Agenda de ${verComo.mentorNome}` : 'Agenda'}
-        sub={verComo ? 'Somente leitura. Esta consulta fica registrada na auditoria do “ver como”.' : 'Seus combinados e as revisões dos alunos, por dia e horário. Só você vê as suas pendências.'}
+        sub={verComo ? 'Somente leitura. Esta consulta fica registrada na auditoria do “ver como”.' : 'Seus compromissos ficam nos horários; as revisões dos alunos ficam resumidas no topo de cada dia.'}
         right={<>
           <div className="cal-seg" role="group" aria-label="Forma de ver a agenda">
             <button type="button" className={visao === 'calendario' ? 'on' : ''} aria-pressed={visao === 'calendario'} onClick={() => escolher('calendario')}><CalendarDays size={14} aria-hidden style={{ verticalAlign: -2 }} /> Calendário</button>

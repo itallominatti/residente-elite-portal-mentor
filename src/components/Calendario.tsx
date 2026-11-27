@@ -8,7 +8,7 @@
  * - Esc cancela o arraste.
  * O componente só desenha e entrega gestos: quem grava (e confirma) é a tela.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import {
   arredondar, diaDe, eventosDoDia, horaDoMinuto, limitar, MINUTOS_NO_DIA, minutoNoDia, NOME_DO_DIA, numeroDoDia, paraIso, PASSO_MIN, posicionar,
   type Dia, type EventoDoCalendario,
@@ -28,11 +28,14 @@ interface Props<T> {
   aoClicarEvento: (e: EventoDoCalendario<T>) => void;
   aoMover: (e: EventoDoCalendario<T>, novoInicio: string) => void;
   aoClicarDia?: (dia: Dia) => void;
+  /** Faixa de dia inteiro acima das horas (usada para revisões dos alunos, que não têm hora marcada). */
+  faixaDoDia?: (dia: Dia) => ReactNode;
+  rotuloDaFaixa?: string;
 }
 
 interface Arraste { id: string; dia: Dia; minuto: number; saiu: boolean }
 
-export function Calendario<T>({ dias, eventos, hoje, podeCriar, aoClicarVazio, aoClicarEvento, aoMover, aoClicarDia }: Props<T>) {
+export function Calendario<T>({ dias, eventos, hoje, podeCriar, aoClicarVazio, aoClicarEvento, aoMover, aoClicarDia, faixaDoDia, rotuloDaFaixa }: Props<T>) {
   const rolagem = useRef<HTMLDivElement>(null);
   const colunas = useRef<HTMLDivElement>(null);
   const [agora, setAgora] = useState(() => new Date());
@@ -131,6 +134,16 @@ export function Calendario<T>({ dias, eventos, hoje, podeCriar, aoClicarVazio, a
           </button>
         ))}
       </div>
+      {faixaDoDia && (
+        <div className="cal-allday" style={{ gridTemplateColumns: `52px repeat(${dias.length}, 1fr)` }}>
+          <span className="cal-allday-lbl">{rotuloDaFaixa ?? 'Dia'}</span>
+          {dias.map(d => (
+            <div key={d} className={`cal-allday-cel${d === hoje ? ' hoje' : ''}`}>
+              {faixaDoDia(d)}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="cal-scroll" ref={rolagem}>
         <div className="cal-grid" style={{ height: 24 * ALTURA_DA_HORA }}>
           <div className="cal-horas" aria-hidden>
